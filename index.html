@@ -714,8 +714,8 @@
     <div id="setupBanner" class="setup-banner hidden">
       <div class="setup-banner-msg">🔒 PIN을 설정하면 나만 앱을 열 수 있어요!</div>
       <div class="setup-banner-btns">
-        <button class="btn-primary" style="padding:10px 18px;white-space:nowrap" id="bannerPinBtn">PIN 설정하기</button>
-        <button class="btn-outline" style="padding:10px 14px" id="bannerCloseBtn">닫기</button>
+        <button class="btn-primary" style="padding:10px 18px;white-space:nowrap" id="bannerPinBtn" onclick="document.getElementById('setupBanner').classList.add('hidden');openPinSetting()">PIN 설정하기</button>
+        <button class="btn-outline" style="padding:10px 14px" id="bannerCloseBtn" onclick="document.getElementById('setupBanner').classList.add('hidden')">닫기</button>
       </div>
     </div>
 
@@ -853,63 +853,64 @@ const FLABELS = { 'font-sm':'작게','font-md':'보통','font-lg':'크게','font
 const loadItems = () => { try { return JSON.parse(localStorage.getItem(K_ITEMS))||[]; } catch { return []; } };
 const saveItems = d  => localStorage.setItem(K_ITEMS, JSON.stringify(d));
 
+// ── 전역 상태 (IIFE 이전에 선언해야 onclick에서 안전하게 접근 가능) ──
+let _pin = '';
+let _psVal = '', _psFirst = '', _psStep = 1;
+let editingId = null;
+const ROTATE_DAYS = 180;
+const DAY_MS = 1000 * 60 * 60 * 24;
+
 // ── INIT ──
-(function init() {
-  const dark = localStorage.getItem(K_DARK) === '1';
-  if (dark) {
-    document.body.classList.add('dark');
-    document.getElementById('darkBtn').textContent = '☀️';
-    document.getElementById('darkChk').checked = true;
-  }
-  const font = localStorage.getItem(K_FONT) || 'font-md';
-  applyFont(font, false);
-
-  const pin = localStorage.getItem(K_PIN);
-  if (pin) {
-    document.getElementById('pinOverlay').classList.remove('hidden');
-  } else if (!localStorage.getItem(K_WELCOMED)) {
-    document.getElementById('welcomeOverlay').classList.remove('hidden');
-  } else if (!pin) {
-    // PIN 없고 이미 방문한 경우 → 배너 표시
-    document.getElementById('setupBanner').classList.remove('hidden');
-  }
-
-  refreshPinStatus();
-  renderList();
-
-  // 배너 버튼
-  document.getElementById('bannerPinBtn').addEventListener('click', function() {
-    document.getElementById('setupBanner').classList.add('hidden');
-    openPinSetting();
-  });
-  document.getElementById('bannerCloseBtn').addEventListener('click', function() {
-    document.getElementById('setupBanner').classList.add('hidden');
-  });
-
-  // Enter 키로 저장 (한글 조합 중 Enter는 무시)
-  ['site','userId','siteUrl'].forEach(id =>
-    document.getElementById(id).addEventListener('keydown', e => {
-      if (e.key === 'Enter' && !e.isComposing) saveItem();
-    })
-  );
-  document.getElementById('breachEmail').addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.isComposing) checkBreach();
-  });
-
-  // URL 자동완성: 한글 입력(IME) 포함 모든 경우를 확실히 잡음
-  const urlEl = document.getElementById('siteUrl');
-  ['input', 'compositionupdate', 'compositionend', 'focus', 'click'].forEach(ev =>
-    urlEl.addEventListener(ev, () => urlSuggest(urlEl))
-  );
-
-  // URL 드롭다운: 외부 클릭 시 닫기 (blur 대신 document click 사용 → 모바일 호환)
-  document.addEventListener('click', function(e) {
-    const wrap = document.querySelector('.url-wrap');
-    if (wrap && !wrap.contains(e.target)) {
-      document.getElementById('urlDropdown').classList.add('hidden');
+try {
+  (function init() {
+    var dark = localStorage.getItem(K_DARK) === '1';
+    if (dark) {
+      document.body.classList.add('dark');
+      document.getElementById('darkBtn').textContent = '☀️';
+      document.getElementById('darkChk').checked = true;
     }
-  });
-})();
+    var font = localStorage.getItem(K_FONT) || 'font-md';
+    applyFont(font, false);
+
+    var pin = localStorage.getItem(K_PIN);
+    if (pin) {
+      document.getElementById('pinOverlay').classList.remove('hidden');
+    } else if (!localStorage.getItem(K_WELCOMED)) {
+      document.getElementById('welcomeOverlay').classList.remove('hidden');
+    } else {
+      document.getElementById('setupBanner').classList.remove('hidden');
+    }
+
+    refreshPinStatus();
+    renderList();
+
+    // Enter 키 저장 (한글 조합 중 Enter 무시)
+    ['site','userId','siteUrl'].forEach(function(id) {
+      document.getElementById(id).addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.isComposing) saveItem();
+      });
+    });
+    document.getElementById('breachEmail').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' && !e.isComposing) checkBreach();
+    });
+
+    // URL 자동완성 (한글 IME 포함)
+    var urlEl = document.getElementById('siteUrl');
+    ['input','compositionupdate','compositionend','focus','click'].forEach(function(ev) {
+      urlEl.addEventListener(ev, function() { urlSuggest(urlEl); });
+    });
+
+    // URL 드롭다운: 외부 클릭 시 닫기
+    document.addEventListener('click', function(e) {
+      var wrap = document.querySelector('.url-wrap');
+      if (wrap && !wrap.contains(e.target)) {
+        document.getElementById('urlDropdown').classList.add('hidden');
+      }
+    });
+  })();
+} catch(e) {
+  console.error('init error:', e);
+}
 
 // ── MODAL HELPERS ──
 function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
@@ -941,7 +942,6 @@ function fontStep(dir) {
 }
 
 // ── PIN UNLOCK ──
-let _pin = '';
 function pinKey(d) {
   if (_pin.length >= 4) return;
   _pin += d;
@@ -986,7 +986,6 @@ function welcomeSkip() {
 }
 
 // ── PIN SETUP ──
-let _psVal='', _psFirst='', _psStep=1;
 function openPinSetting() {
   _psStep=1; _psFirst=''; _psVal='';
   dots('pinSetDots',0);
@@ -1086,9 +1085,6 @@ function onPwInput() {
 }
 
 // ── ITEM CRUD ──
-const ROTATE_DAYS = 180;                       // 비밀번호 교체 권장 기간 (6개월)
-const DAY_MS = 1000 * 60 * 60 * 24;
-let editingId = null;                          // 수정 중인 항목 id (없으면 신규)
 
 function saveItem() {
   const site    = document.getElementById('site').value.trim();
