@@ -755,7 +755,7 @@
           <label for="siteUrl">사이트 주소 (선택)</label>
           <div class="url-wrap">
             <input type="text" id="siteUrl" placeholder="사이트 이름 또는 주소 입력 (예: naver, 구글)"
-                   autocomplete="off" oninput="urlSuggest(this)" onblur="hideUrlDrop()" />
+                   autocomplete="off" onblur="hideUrlDrop()" />
             <div id="urlDropdown" class="url-dropdown hidden"></div>
           </div>
         </div>
@@ -855,10 +855,21 @@ const saveItems = d  => localStorage.setItem(K_ITEMS, JSON.stringify(d));
   refreshPinStatus();
   renderList();
 
+  // Enter 키로 저장 (한글 조합 중 Enter는 무시)
   ['site','userId','siteUrl'].forEach(id =>
-    document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') saveItem(); })
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.isComposing) saveItem();
+    })
   );
-  document.getElementById('breachEmail').addEventListener('keydown', e => { if(e.key==='Enter') checkBreach(); });
+  document.getElementById('breachEmail').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.isComposing) checkBreach();
+  });
+
+  // URL 자동완성: 한글 입력(IME) 포함 모든 경우를 확실히 잡음
+  const urlEl = document.getElementById('siteUrl');
+  ['input', 'compositionupdate', 'compositionend', 'focus', 'click'].forEach(ev =>
+    urlEl.addEventListener(ev, () => urlSuggest(urlEl))
+  );
 })();
 
 // ── MODAL HELPERS ──
