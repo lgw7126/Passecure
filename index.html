@@ -305,16 +305,49 @@
       padding: 3px 9px; border-radius: 20px;
       font-size: .75em; font-weight: 700; white-space: nowrap; flex-shrink: 0;
     }
-    .cat-소셜 { background:#e8f4fd; color:#1a6fa8; }
+    .cat-포털 { background:#e8f0fd; color:#1a4fa8; }
+    .cat-소셜 { background:#fce8f8; color:#a81a8c; }
     .cat-쇼핑 { background:#fdf3e8; color:#a86b1a; }
     .cat-금융 { background:#e8f8ef; color:#1a7a3a; }
+    .cat-결제 { background:#fff0f0; color:#c0392b; }
     .cat-업무 { background:#f0e8fd; color:#6b1aa8; }
+    .cat-엔터 { background:#fff0e8; color:#c04a00; }
+    .cat-게임 { background:#e8fff0; color:#007a3a; }
+    .cat-공공 { background:#f0f4f8; color:#2c4a6b; }
     .cat-기타 { background:#f0f4f8; color:#555; }
-    body.dark .cat-소셜 { background:#1a3a52; color:#60b4f0; }
+    body.dark .cat-포털 { background:#1a2e52; color:#60a0f0; }
+    body.dark .cat-소셜 { background:#3a1a38; color:#f060d0; }
     body.dark .cat-쇼핑 { background:#52341a; color:#f0b460; }
     body.dark .cat-금융 { background:#1a3b26; color:#60d080; }
+    body.dark .cat-결제 { background:#3b1c1c; color:#f87171; }
     body.dark .cat-업무 { background:#2e1a52; color:#b060f0; }
+    body.dark .cat-엔터 { background:#3b2200; color:#f09060; }
+    body.dark .cat-게임 { background:#003b1a; color:#50e090; }
+    body.dark .cat-공공 { background:#1a2a3b; color:#70a0d0; }
     body.dark .cat-기타 { background:#2a3040; color:#9ca3af; }
+
+    /* 주의 관리 카드 */
+    .item-card.alert-card { border: 2px solid #e74c3c; }
+    .alert-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 9px; border-radius: 20px;
+      background: #fff0f0; color: #c0392b;
+      font-size: .75em; font-weight: 700;
+      border: 1px solid #f5b7b1;
+    }
+    body.dark .alert-badge { background: #3b1c1c; color: #f87171; border-color: #7a2a2a; }
+
+    /* 주의 체크박스 */
+    .alert-check-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 14px; border-radius: var(--radius-sm);
+      background: #fff8f8; border: 2px solid #fad7d7;
+      cursor: pointer; margin-bottom: 13px;
+    }
+    body.dark .alert-check-row { background: #2a1a1a; border-color: #5a2a2a; }
+    .alert-check-row input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; accent-color: #c0392b; }
+    .alert-check-row label { font-size: .95em; font-weight: 700; color: #c0392b; cursor: pointer; margin: 0; }
+    body.dark .alert-check-row label { color: #f87171; }
 
     .visit-btn {
       display: inline-block; margin-bottom: 9px;
@@ -561,11 +594,16 @@
         <div class="form-group">
           <label for="cat">카테고리</label>
           <select id="cat">
-            <option value="기타">기타</option>
-            <option value="소셜">소셜</option>
-            <option value="쇼핑">쇼핑</option>
-            <option value="금융">금융</option>
-            <option value="업무">업무</option>
+            <option value="포털">🔍 포털/검색 (네이버, 구글, 다음)</option>
+            <option value="소셜">💬 소셜 (인스타, 카카오, 페이스북)</option>
+            <option value="쇼핑">🛒 쇼핑 (쿠팡, 지마켓, 11번가)</option>
+            <option value="금융">🏦 금융/은행 (은행, 증권, 보험)</option>
+            <option value="결제">💳 결제/카드 (신용카드, 간편결제)</option>
+            <option value="엔터">🎬 엔터테인먼트 (넷플릭스, 유튜브, 멜론)</option>
+            <option value="게임">🎮 게임</option>
+            <option value="업무">💼 업무/회사</option>
+            <option value="공공">🏛️ 공공/정부 (정부24, 건강보험 등)</option>
+            <option value="기타">📁 기타</option>
           </select>
         </div>
 
@@ -591,12 +629,17 @@
 
         <div class="form-group">
           <label for="siteUrl">사이트 주소 (선택)</label>
-          <input type="url" id="siteUrl" placeholder="https://www.naver.com" />
+          <input type="url" id="siteUrl" placeholder="https://사이트주소.com" />
         </div>
 
         <div class="form-group">
           <label for="memo">메모 (선택)</label>
           <textarea id="memo" placeholder="예: 2차 인증 있음, 보안 질문: 강아지 이름"></textarea>
+        </div>
+
+        <div class="alert-check-row" onclick="document.getElementById('alertChk').click()">
+          <input type="checkbox" id="alertChk" onclick="event.stopPropagation()" />
+          <label for="alertChk">🔴 주의 관리 — 결제 정보·계좌가 연동된 중요 사이트</label>
         </div>
 
         <button class="btn-primary" onclick="saveItem()">저장하기</button>
@@ -606,10 +649,15 @@
         <input type="text" id="search" placeholder="🔍 사이트 이름으로 검색..." oninput="renderList()" />
         <select id="catFilter" onchange="renderList()">
           <option value="">전체</option>
+          <option value="포털">포털/검색</option>
           <option value="소셜">소셜</option>
           <option value="쇼핑">쇼핑</option>
-          <option value="금융">금융</option>
-          <option value="업무">업무</option>
+          <option value="금융">금융/은행</option>
+          <option value="결제">결제/카드</option>
+          <option value="엔터">엔터테인먼트</option>
+          <option value="게임">게임</option>
+          <option value="업무">업무/회사</option>
+          <option value="공공">공공/정부</option>
           <option value="기타">기타</option>
         </select>
       </div>
@@ -836,14 +884,16 @@ function saveItem() {
   const pw      = document.getElementById('pw').value;
   const siteUrl = document.getElementById('siteUrl').value.trim();
   const memo    = document.getElementById('memo').value.trim();
+  const alert   = document.getElementById('alertChk').checked;
   if (!site)   { showToast('사이트 이름을 입력해 주세요.'); return; }
   if (!userId) { showToast('아이디를 입력해 주세요.'); return; }
   if (!pw)     { showToast('비밀번호를 입력해 주세요.'); return; }
   const items = loadItems();
-  items.unshift({ id: Date.now(), site, cat, userId, pw, siteUrl, memo });
+  items.unshift({ id: Date.now(), site, cat, userId, pw, siteUrl, memo, alert });
   saveItems(items);
   ['site','userId','siteUrl','memo'].forEach(id => document.getElementById(id).value='');
   document.getElementById('pw').value=''; document.getElementById('pw').type='password';
+  document.getElementById('alertChk').checked = false;
   document.getElementById('strBar').style.width='0';
   document.getElementById('strTxt').textContent='';
   document.getElementById('dupWarn').classList.add('hidden');
@@ -872,16 +922,27 @@ function renderList() {
     return;
   }
   const allPws = all.map(i => i.pw);
+  const CAT_LABELS = {
+    '포털':'포털/검색','소셜':'소셜','쇼핑':'쇼핑','금융':'금융/은행',
+    '결제':'결제/카드','엔터':'엔터테인먼트','게임':'게임',
+    '업무':'업무/회사','공공':'공공/정부','기타':'기타'
+  };
   document.getElementById('list').innerHTML = list.map(item => {
-    const isDup = allPws.filter(p => p === item.pw).length > 1;
-    const url   = (item.siteUrl||'').trim();
-    const safe  = safeUrl(url);
+    const isDup   = allPws.filter(p => p === item.pw).length > 1;
+    const url     = (item.siteUrl||'').trim();
+    const safe    = safeUrl(url);
+    const catKey  = item.cat || '기타';
+    const catLabel = CAT_LABELS[catKey] || catKey;
     return `
-      <div class="item-card">
+      <div class="item-card${item.alert ? ' alert-card' : ''}">
         <div class="item-head">
           <span class="item-site">🌐 ${h(item.site)}</span>
-          <span class="cat-badge cat-${h(item.cat||'기타')}">${h(item.cat||'기타')}</span>
+          <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
+            ${item.alert ? `<span class="alert-badge">🔴 주의</span>` : ''}
+            <span class="cat-badge cat-${h(catKey)}">${h(catLabel)}</span>
+          </div>
         </div>
+        ${item.alert ? `<div style="font-size:.82em;color:var(--danger);margin-bottom:8px">⚠️ 결제 정보·계좌가 연동된 중요 사이트입니다. 각별히 주의하세요.</div>` : ''}
         ${safe ? `<a class="visit-btn" href="${h(safe)}" target="_blank" rel="noopener">🔗 사이트 방문</a>` : ''}
         <div class="item-row">
           <span class="item-lbl">아이디</span>
