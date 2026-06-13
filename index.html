@@ -5,630 +5,1003 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>비밀번호 메모장</title>
   <style>
+    :root {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --surface2: #f5f8ff;
+      --text: #1a1a2e;
+      --text2: #444;
+      --text3: #888;
+      --border: #d0d7e3;
+      --primary: #4a6cf7;
+      --primary-d: #2d4fd6;
+      --primary-bg: #e8edff;
+      --danger: #c0392b;
+      --danger-bg: #fff0f0;
+      --success: #1a7a3a;
+      --success-bg: #e8f8ef;
+      --warn-color: #b45309;
+      --warn-bg: #fff8e1;
+      --shadow: 0 2px 14px rgba(0,0,0,0.09);
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.07);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+    body.dark {
+      --bg: #111827;
+      --surface: #1f2937;
+      --surface2: #111827;
+      --text: #f3f4f6;
+      --text2: #d1d5db;
+      --text3: #9ca3af;
+      --border: #374151;
+      --primary: #818cf8;
+      --primary-d: #6366f1;
+      --primary-bg: #1e1e4a;
+      --danger: #f87171;
+      --danger-bg: #3b1c1c;
+      --success: #4ade80;
+      --success-bg: #1c3b26;
+      --warn-color: #fbbf24;
+      --warn-bg: #3b2a00;
+      --shadow: 0 2px 14px rgba(0,0,0,0.35);
+      --shadow-sm: 0 2px 8px rgba(0,0,0,0.25);
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: 'Noto Sans KR', '맑은 고딕', sans-serif;
-      background: #f0f4f8;
-      color: #1a1a2e;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
-      padding: 24px 16px 48px;
+      transition: background .3s, color .3s;
     }
 
-    h1 {
+    body.font-sm  { font-size: 14px; }
+    body.font-md  { font-size: 17px; }
+    body.font-lg  { font-size: 20px; }
+    body.font-xl  { font-size: 23px; }
+
+    .hidden { display: none !important; }
+
+    /* ── PIN OVERLAY ── */
+    .pin-overlay {
+      position: fixed; inset: 0;
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 2000;
+    }
+    .pin-box {
+      background: var(--surface);
+      border-radius: 24px;
+      padding: 36px 28px;
+      box-shadow: var(--shadow);
       text-align: center;
-      font-size: 2rem;
-      margin-bottom: 24px;
-      color: #1a1a2e;
+      width: min(360px, 92vw);
+    }
+    .pin-box h2 { font-size: 1.5em; margin-bottom: 6px; }
+    .pin-box .pin-sub { font-size: .95em; color: var(--text3); margin-bottom: 24px; }
+    .pin-dots {
+      display: flex; justify-content: center; gap: 16px; margin-bottom: 28px;
+    }
+    .pin-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2px solid var(--border); background: transparent;
+      transition: all .15s;
+    }
+    .pin-dot.filled { background: var(--primary); border-color: var(--primary); }
+    .pin-keypad {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+      max-width: 260px; margin: 0 auto 14px;
+    }
+    .pin-key {
+      padding: 16px; font-size: 1.25em; font-weight: 700;
+      border: 2px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--surface2); color: var(--text);
+      cursor: pointer; transition: all .15s;
+    }
+    .pin-key:hover  { background: var(--primary-bg); border-color: var(--primary); }
+    .pin-key:active { transform: scale(.94); }
+    .pin-key.del    { color: var(--danger); }
+    .pin-key.invis  { opacity: 0; pointer-events: none; }
+    .pin-err {
+      color: var(--danger); font-size: .9em; font-weight: 700; margin-top: 8px;
     }
 
+    /* ── MODALS ── */
+    .modal-bg {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.5);
+      display: flex; align-items: flex-end; justify-content: center;
+      z-index: 1000;
+    }
+    .modal-sheet {
+      background: var(--surface);
+      border-radius: 20px 20px 0 0;
+      width: 100%; max-width: 720px;
+      max-height: 88vh; overflow-y: auto;
+      padding: 26px 22px 44px;
+    }
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 22px;
+    }
+    .modal-head h2 { font-size: 1.15em; }
+    .modal-close {
+      background: none; border: none; font-size: 1.4em;
+      cursor: pointer; color: var(--text3); padding: 2px 8px;
+    }
+    .setting-section { margin-bottom: 26px; }
+    .setting-section h3 {
+      font-size: .85em; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .6px; color: var(--text3);
+      padding-bottom: 8px; border-bottom: 1px solid var(--border);
+      margin-bottom: 12px;
+    }
+    .setting-row {
+      display: flex; align-items: center;
+      justify-content: space-between; padding: 10px 0; gap: 12px;
+    }
+    .setting-label { font-size: 1em; color: var(--text); }
+    .setting-label small { display: block; font-size: .82em; color: var(--text3); margin-top: 2px; }
+
+    /* ── TOGGLE SWITCH ── */
+    .sw { position: relative; width: 50px; height: 26px; flex-shrink: 0; }
+    .sw input { opacity: 0; width: 0; height: 0; }
+    .sw-track {
+      position: absolute; inset: 0;
+      background: var(--border); border-radius: 26px;
+      cursor: pointer; transition: background .2s;
+    }
+    .sw-track::before {
+      content: ''; position: absolute;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #fff; top: 3px; left: 3px;
+      transition: transform .2s;
+    }
+    .sw input:checked + .sw-track { background: var(--primary); }
+    .sw input:checked + .sw-track::before { transform: translateX(24px); }
+
+    /* ── FONT SIZE BUTTONS ── */
+    .fs-row { display: flex; gap: 6px; width: 100%; margin-top: 8px; }
+    .fs-btn {
+      flex: 1; padding: 10px 4px;
+      border: 2px solid var(--border); border-radius: 8px;
+      background: var(--surface2); color: var(--text);
+      font-weight: 700; cursor: pointer; transition: all .15s;
+      font-size: .9em;
+    }
+    .fs-btn.active { border-color: var(--primary); color: var(--primary); background: var(--primary-bg); }
+
+    /* ── MAIN APP ── */
+    #app { padding: 20px 14px 60px; }
     .container { max-width: 720px; margin: 0 auto; }
 
-    /* 탭 */
-    .tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
+    .app-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px; gap: 10px;
     }
+    .app-header h1 { font-size: 1.4em; white-space: nowrap; }
+    .hdr-btns { display: flex; gap: 5px; flex-shrink: 0; }
+    .hdr-btn {
+      padding: 8px 10px;
+      border: 2px solid var(--border); border-radius: 8px;
+      background: var(--surface); color: var(--text);
+      font-size: .88em; font-weight: 700;
+      cursor: pointer; transition: all .15s; white-space: nowrap;
+    }
+    .hdr-btn:hover { border-color: var(--primary); color: var(--primary); }
 
+    /* ── TABS ── */
+    .tabs { display: flex; gap: 7px; margin-bottom: 18px; }
     .tab-btn {
-      flex: 1;
-      padding: 14px 8px;
-      font-size: 1.05rem;
-      font-weight: 700;
-      border: 2px solid #d0d7e3;
-      border-radius: 12px;
-      background: #fff;
-      color: #888;
-      cursor: pointer;
-      transition: all 0.2s;
+      flex: 1; padding: 12px 6px; font-size: .9em; font-weight: 700;
+      border: 2px solid var(--border); border-radius: var(--radius-sm);
+      background: var(--surface); color: var(--text3);
+      cursor: pointer; transition: all .2s;
     }
-
-    .tab-btn.active {
-      background: #4a6cf7;
-      color: #fff;
-      border-color: #4a6cf7;
-    }
-
+    .tab-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
     .tab-panel { display: none; }
     .tab-panel.active { display: block; }
 
-    /* 카드 공통 */
+    /* ── CARD ── */
     .card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 28px 24px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-      margin-bottom: 24px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 20px 18px;
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
     }
+    .card h2 { font-size: 1.05em; color: var(--primary); margin-bottom: 16px; }
 
-    .card h2 {
-      font-size: 1.3rem;
-      margin-bottom: 20px;
-      color: #2d3a8c;
-    }
-
-    .form-group { margin-bottom: 16px; }
-
-    label {
-      display: block;
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 6px;
-      color: #333;
-    }
+    .form-group { margin-bottom: 13px; }
+    label { display: block; font-size: .9em; font-weight: 600; margin-bottom: 5px; color: var(--text2); }
 
     input[type="text"],
     input[type="password"],
-    input[type="email"] {
-      width: 100%;
-      padding: 14px 16px;
-      font-size: 1.15rem;
-      border: 2px solid #d0d7e3;
-      border-radius: 10px;
-      outline: none;
-      transition: border-color 0.2s;
-      background: #fafbff;
+    input[type="email"],
+    input[type="url"],
+    textarea,
+    select {
+      width: 100%; padding: 12px 14px; font-size: 1em; font-family: inherit;
+      border: 2px solid var(--border); border-radius: var(--radius-sm);
+      outline: none; background: var(--surface2); color: var(--text);
+      transition: border-color .2s, background .2s;
     }
+    input:focus, textarea:focus, select:focus { border-color: var(--primary); }
+    textarea { resize: vertical; min-height: 68px; }
 
-    input:focus { border-color: #4a6cf7; background: #fff; }
-
-    .pw-wrapper { position: relative; }
-    .pw-wrapper input { padding-right: 56px; }
-
-    .toggle-pw {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 1.3rem;
-      padding: 4px;
-      color: #666;
+    /* Password row */
+    .pw-row { display: flex; gap: 7px; }
+    .pw-wrap { flex: 1; position: relative; }
+    .pw-wrap input { padding-right: 46px; }
+    .eye-btn {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; font-size: 1.1em; color: var(--text3);
     }
+    .btn-gen {
+      padding: 0 13px;
+      background: var(--primary-bg); color: var(--primary);
+      border: 2px solid var(--primary-bg); border-radius: var(--radius-sm);
+      font-size: .88em; font-weight: 700; cursor: pointer; white-space: nowrap;
+      transition: all .15s;
+    }
+    .btn-gen:hover { border-color: var(--primary); }
 
+    /* Strength */
+    .str-wrap { height: 5px; background: var(--border); border-radius: 3px; margin-top: 5px; overflow: hidden; }
+    .str-bar   { height: 100%; border-radius: 3px; transition: width .3s, background .3s; width: 0; }
+    .str-text  { font-size: .8em; font-weight: 700; margin-top: 3px; }
+    .str-1 { color: #e74c3c; } .str-2 { color: #f39c12; }
+    .str-3 { color: #3498db; } .str-4 { color: #27ae60; }
+    .dup-warn { font-size: .83em; color: #f39c12; font-weight: 700; margin-top: 3px; }
+
+    /* Buttons */
     .btn-primary {
-      width: 100%;
-      padding: 16px;
-      background: #4a6cf7;
-      color: #fff;
-      font-size: 1.2rem;
-      font-weight: 700;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      margin-top: 8px;
-      transition: background 0.2s;
+      width: 100%; padding: 14px; background: var(--primary); color: #fff;
+      font-size: 1em; font-weight: 700; border: none; border-radius: var(--radius-sm);
+      cursor: pointer; margin-top: 6px; transition: background .2s;
     }
-
-    .btn-primary:hover { background: #2d4fd6; }
-    .btn-primary:disabled { background: #aab4e8; cursor: not-allowed; }
-
-    /* 검색 */
-    .search-area { margin-bottom: 20px; }
-    .search-area input {
-      width: 100%;
-      padding: 14px 16px;
-      font-size: 1.15rem;
-      border: 2px solid #d0d7e3;
-      border-radius: 10px;
-      outline: none;
-      background: #fff;
-      transition: border-color 0.2s;
+    .btn-primary:hover    { background: var(--primary-d); }
+    .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+    .btn-outline {
+      padding: 9px 16px; background: transparent; color: var(--primary);
+      font-size: .92em; font-weight: 700;
+      border: 2px solid var(--primary); border-radius: var(--radius-sm);
+      cursor: pointer; transition: all .15s;
     }
-    .search-area input:focus { border-color: #4a6cf7; }
-
-    /* 목록 */
-    .list-title {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: #2d3a8c;
-      margin-bottom: 12px;
+    .btn-outline:hover { background: var(--primary-bg); }
+    .btn-danger {
+      padding: 7px 13px; background: var(--danger-bg); color: var(--danger);
+      border: none; border-radius: 8px;
+      font-size: .85em; font-weight: 700; cursor: pointer; transition: filter .15s;
     }
+    .btn-danger:hover { filter: brightness(.93); }
 
-    .empty-msg {
-      text-align: center;
-      color: #999;
-      font-size: 1.1rem;
-      padding: 40px 0;
-    }
+    /* Filter row */
+    .filter-row { display: flex; gap: 7px; margin-bottom: 14px; }
+    .filter-row input  { flex: 1; padding: 11px 13px; font-size: .92em; }
+    .filter-row select { width: auto; padding: 11px 10px; font-size: .88em; }
 
+    .list-title { font-size: .9em; font-weight: 700; color: var(--text3); margin-bottom: 9px; }
+    .empty-msg  { text-align: center; color: var(--text3); font-size: 1em; padding: 38px 0; }
+
+    /* Item card */
     .item-card {
-      background: #fff;
-      border-radius: 14px;
-      padding: 20px 20px 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-      margin-bottom: 14px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      padding: 16px 16px 12px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 11px;
     }
+    .item-head {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; margin-bottom: 10px; gap: 7px;
+    }
+    .item-site { font-size: 1.05em; font-weight: 700; word-break: break-all; }
+    .cat-badge {
+      padding: 3px 9px; border-radius: 20px;
+      font-size: .75em; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+    }
+    .cat-소셜 { background:#e8f4fd; color:#1a6fa8; }
+    .cat-쇼핑 { background:#fdf3e8; color:#a86b1a; }
+    .cat-금융 { background:#e8f8ef; color:#1a7a3a; }
+    .cat-업무 { background:#f0e8fd; color:#6b1aa8; }
+    .cat-기타 { background:#f0f4f8; color:#555; }
+    body.dark .cat-소셜 { background:#1a3a52; color:#60b4f0; }
+    body.dark .cat-쇼핑 { background:#52341a; color:#f0b460; }
+    body.dark .cat-금융 { background:#1a3b26; color:#60d080; }
+    body.dark .cat-업무 { background:#2e1a52; color:#b060f0; }
+    body.dark .cat-기타 { background:#2a3040; color:#9ca3af; }
 
-    .item-site {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #1a1a2e;
-      margin-bottom: 14px;
-      word-break: break-all;
+    .visit-btn {
+      display: inline-block; margin-bottom: 9px;
+      padding: 4px 11px; background: var(--primary-bg); color: var(--primary);
+      border-radius: 20px; font-size: .82em; font-weight: 700;
+      text-decoration: none; transition: filter .15s;
     }
+    .visit-btn:hover { filter: brightness(.93); }
 
     .item-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 10px;
+      display: flex; align-items: center; gap: 7px; margin-bottom: 7px;
     }
-
-    .item-label { font-size: 1rem; color: #666; min-width: 64px; font-weight: 600; }
-    .item-value { font-size: 1.05rem; color: #222; flex: 1; word-break: break-all; }
-    .item-value.masked { letter-spacing: 3px; color: #555; }
-
+    .item-lbl { font-size: .85em; color: var(--text3); min-width: 54px; font-weight: 600; }
+    .item-val { font-size: .92em; flex: 1; word-break: break-all; }
+    .item-val.masked { letter-spacing: 3px; color: var(--text3); }
+    .dup-icon { font-size: .82em; color: #f39c12; cursor: help; }
     .btn-copy {
-      padding: 8px 16px;
-      background: #e8edff;
-      color: #2d4fd6;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background 0.15s;
+      padding: 5px 11px; background: var(--primary-bg); color: var(--primary);
+      border: none; border-radius: 6px;
+      font-size: .83em; font-weight: 700; cursor: pointer; white-space: nowrap;
+      transition: filter .15s;
+    }
+    .btn-copy:hover  { filter: brightness(.93); }
+    .btn-copy.copied { background: var(--success-bg); color: var(--success); }
+
+    .item-notes {
+      margin-top: 7px; padding: 7px 11px;
+      background: var(--surface2); border-radius: 8px;
+      font-size: .85em; color: var(--text2);
+      border-left: 3px solid var(--border);
+      white-space: pre-wrap; word-break: break-all;
+    }
+    .item-foot {
+      display: flex; justify-content: flex-end;
+      margin-top: 9px; padding-top: 9px;
+      border-top: 1px solid var(--border);
     }
 
-    .btn-copy:hover { background: #c7d4ff; }
-    .btn-copy.copied { background: #d4edda; color: #1a7a3a; }
-
-    .item-actions {
-      display: flex;
-      justify-content: flex-end;
-      margin-top: 12px;
-      border-top: 1px solid #f0f0f0;
-      padding-top: 12px;
-    }
-
-    .btn-delete {
-      padding: 8px 16px;
-      background: #fff0f0;
-      color: #c0392b;
-      border: none;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background 0.15s;
-    }
-
-    .btn-delete:hover { background: #ffd5d5; }
-
-    /* ── 유출 조회 탭 ── */
+    /* ── BREACH TAB ── */
     .breach-notice {
-      background: #fff8e1;
-      border-left: 4px solid #f59e0b;
-      border-radius: 8px;
-      padding: 14px 16px;
-      font-size: 1rem;
-      color: #7a5c00;
-      margin-bottom: 20px;
-      line-height: 1.6;
+      background: var(--warn-bg); border-left: 4px solid #f59e0b;
+      border-radius: 8px; padding: 12px 13px;
+      font-size: .88em; color: var(--warn-color);
+      margin-bottom: 14px; line-height: 1.65;
     }
-
-    #breachResult { margin-top: 20px; }
-
     .breach-safe {
-      text-align: center;
-      padding: 28px 16px;
-      background: #e8f8ef;
-      border-radius: 14px;
-      font-size: 1.15rem;
-      color: #1a7a3a;
-      font-weight: 700;
+      text-align: center; padding: 24px 14px;
+      background: var(--success-bg); border-radius: var(--radius);
+      font-size: 1em; color: var(--success); font-weight: 700;
     }
-
-    .breach-found-header {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: #c0392b;
-      margin-bottom: 14px;
-      padding: 14px 16px;
-      background: #fff0f0;
-      border-radius: 10px;
+    .breach-found-hdr {
+      font-size: 1em; font-weight: 700; color: var(--danger);
+      margin-bottom: 11px; padding: 12px 13px;
+      background: var(--danger-bg); border-radius: var(--radius-sm);
     }
-
     .breach-item {
-      background: #fff;
-      border-radius: 12px;
-      padding: 16px 18px;
-      margin-bottom: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
-      border-left: 4px solid #e74c3c;
+      background: var(--surface); border-radius: var(--radius-sm);
+      padding: 13px 15px; margin-bottom: 9px;
+      box-shadow: var(--shadow-sm); border-left: 4px solid var(--danger);
     }
-
-    .breach-item-name {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: #1a1a2e;
-      margin-bottom: 6px;
+    .breach-name   { font-size: .98em; font-weight: 700; margin-bottom: 3px; }
+    .breach-domain { font-size: .83em; color: var(--text3); margin-bottom: 5px; }
+    .breach-tags   { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+    .btag {
+      padding: 3px 8px; border-radius: 20px; font-size: .78em; font-weight: 600;
     }
-
-    .breach-item-domain {
-      font-size: 0.95rem;
-      color: #888;
-      margin-bottom: 8px;
+    .btag.date { background: var(--primary-bg); color: var(--primary); }
+    .btag.data { background: var(--warn-bg); color: var(--warn-color); }
+    .breach-err {
+      text-align: center; padding: 20px 14px;
+      background: var(--surface); border-radius: var(--radius);
+      font-size: .93em; color: var(--text2); line-height: 1.7;
+      box-shadow: var(--shadow-sm);
     }
+    .breach-err a { color: var(--primary); font-weight: 700; text-decoration: none; }
+    .loading-msg { text-align: center; padding: 26px; font-size: .95em; color: var(--text3); }
 
-    .breach-item-meta {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 8px;
-    }
-
-    .breach-tag {
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 0.88rem;
-      font-weight: 600;
-      background: #f0f4f8;
-      color: #555;
-    }
-
-    .breach-tag.date { background: #e8edff; color: #2d4fd6; }
-    .breach-tag.data { background: #fff3e0; color: #b45309; }
-
-    .breach-error {
-      text-align: center;
-      padding: 24px 16px;
-      background: #f8f9fa;
-      border-radius: 14px;
-      font-size: 1rem;
-      color: #555;
-      line-height: 1.7;
-    }
-
-    .breach-error a {
-      color: #4a6cf7;
-      font-weight: 700;
-      text-decoration: none;
-    }
-
-    .loading-spinner {
-      text-align: center;
-      padding: 32px;
-      font-size: 1.1rem;
-      color: #888;
-    }
-
-    /* 토스트 */
+    /* ── TOAST ── */
     #toast {
-      position: fixed;
-      bottom: 32px;
-      left: 50%;
+      position: fixed; bottom: 26px; left: 50%;
       transform: translateX(-50%) translateY(20px);
-      background: #222;
-      color: #fff;
-      padding: 12px 28px;
-      border-radius: 30px;
-      font-size: 1.05rem;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s, transform 0.3s;
-      z-index: 9999;
+      background: #222; color: #fff;
+      padding: 10px 22px; border-radius: 30px;
+      font-size: .92em; opacity: 0; pointer-events: none;
+      transition: opacity .3s, transform .3s; z-index: 9999;
+      white-space: nowrap;
     }
-
     #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
     @media (max-width: 480px) {
-      h1 { font-size: 1.6rem; }
-      .item-row { flex-wrap: wrap; }
-      .tab-btn { font-size: 0.95rem; padding: 12px 4px; }
+      .app-header h1 { font-size: 1.15em; }
+      .hdr-btn { padding: 7px 7px; font-size: .82em; }
+      .filter-row { flex-wrap: wrap; }
+      .filter-row select { width: 100%; }
     }
   </style>
 </head>
-<body>
+<body class="font-md">
 
-<div class="container">
-  <h1>🔐 비밀번호 메모장</h1>
-
-  <!-- 탭 버튼 -->
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('memo')">📝 비밀번호 저장</button>
-    <button class="tab-btn" onclick="switchTab('breach')">🔎 이메일 유출 조회</button>
+<!-- ══ PIN UNLOCK ══ -->
+<div id="pinOverlay" class="pin-overlay hidden">
+  <div class="pin-box">
+    <h2>🔐 비밀번호 메모장</h2>
+    <p class="pin-sub">PIN 번호를 입력하세요</p>
+    <div class="pin-dots" id="pinDots">
+      <span class="pin-dot"></span><span class="pin-dot"></span>
+      <span class="pin-dot"></span><span class="pin-dot"></span>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pinKey('1')">1</button>
+      <button class="pin-key" onclick="pinKey('2')">2</button>
+      <button class="pin-key" onclick="pinKey('3')">3</button>
+      <button class="pin-key" onclick="pinKey('4')">4</button>
+      <button class="pin-key" onclick="pinKey('5')">5</button>
+      <button class="pin-key" onclick="pinKey('6')">6</button>
+      <button class="pin-key" onclick="pinKey('7')">7</button>
+      <button class="pin-key" onclick="pinKey('8')">8</button>
+      <button class="pin-key" onclick="pinKey('9')">9</button>
+      <button class="pin-key del" onclick="pinDel()">←</button>
+      <button class="pin-key" onclick="pinKey('0')">0</button>
+      <button class="pin-key invis" disabled></button>
+    </div>
+    <p class="pin-err hidden" id="pinErr">PIN이 틀렸습니다. 다시 입력해 주세요.</p>
   </div>
+</div>
 
-  <!-- ── 탭 1: 비밀번호 저장 ── -->
-  <div id="tab-memo" class="tab-panel active">
+<!-- ══ SETTINGS MODAL ══ -->
+<div id="settingModal" class="modal-bg hidden" onclick="bgClose('settingModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h2>⚙️ 설정</h2>
+      <button class="modal-close" onclick="closeModal('settingModal')">✕</button>
+    </div>
 
-    <div class="card">
-      <h2>새 항목 저장</h2>
-      <div class="form-group">
-        <label for="site">사이트 이름</label>
-        <input type="text" id="site" placeholder="예: 네이버, 카카오, 구글" />
+    <div class="setting-section">
+      <h3>🔒 앱 잠금 (PIN)</h3>
+      <div class="setting-row">
+        <div class="setting-label">
+          PIN 잠금
+          <small id="pinStatusTxt">설정 안 됨</small>
+        </div>
+        <button class="btn-outline" id="pinSetBtn" onclick="openPinSetup()">PIN 설정</button>
       </div>
-      <div class="form-group">
-        <label for="userId">아이디</label>
-        <input type="text" id="userId" placeholder="아이디 또는 이메일" autocomplete="off" />
+    </div>
+
+    <div class="setting-section">
+      <h3>🎨 화면</h3>
+      <div class="setting-row">
+        <div class="setting-label">다크 모드</div>
+        <label class="sw">
+          <input type="checkbox" id="darkChk" onchange="applyDark(this.checked)" />
+          <span class="sw-track"></span>
+        </label>
       </div>
-      <div class="form-group">
-        <label for="pw">비밀번호</label>
-        <div class="pw-wrapper">
-          <input type="password" id="pw" placeholder="비밀번호 입력" autocomplete="off" />
-          <button class="toggle-pw" onclick="togglePw()" title="비밀번호 보기/숨기기">👁</button>
+      <div class="setting-row" style="flex-direction:column;align-items:flex-start;gap:6px">
+        <div class="setting-label">글씨 크기</div>
+        <div class="fs-row">
+          <button class="fs-btn" data-fs="font-sm" onclick="setFont('font-sm')">작게</button>
+          <button class="fs-btn" data-fs="font-md" onclick="setFont('font-md')">보통</button>
+          <button class="fs-btn" data-fs="font-lg" onclick="setFont('font-lg')">크게</button>
+          <button class="fs-btn" data-fs="font-xl" onclick="setFont('font-xl')">매우 크게</button>
         </div>
       </div>
-      <button class="btn-primary" onclick="saveItem()">저장하기</button>
     </div>
 
-    <div class="search-area">
-      <input type="text" id="search" placeholder="🔍 사이트 이름으로 검색..." oninput="renderList()" />
+    <div class="setting-section">
+      <h3>💾 데이터 백업</h3>
+      <div class="setting-row">
+        <div class="setting-label">내보내기 (백업)<small>JSON 파일로 저장</small></div>
+        <button class="btn-outline" onclick="exportData()">내보내기</button>
+      </div>
+      <div class="setting-row">
+        <div class="setting-label">불러오기 (복원)<small>저장한 파일로 복원</small></div>
+        <button class="btn-outline" onclick="document.getElementById('importFile').click()">불러오기</button>
+        <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
+      </div>
     </div>
-
-    <div class="list-title" id="listTitle"></div>
-    <div id="list"></div>
   </div>
+</div>
 
-  <!-- ── 탭 2: 이메일 유출 조회 ── -->
-  <div id="tab-breach" class="tab-panel">
+<!-- ══ PIN SETUP MODAL ══ -->
+<div id="pinSetModal" class="modal-bg hidden" onclick="bgClose('pinSetModal')">
+  <div class="modal-sheet" style="max-height:72vh" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h2 id="pinSetTitle">🔒 PIN 설정</h2>
+      <button class="modal-close" onclick="closeModal('pinSetModal')">✕</button>
+    </div>
+    <p style="font-size:.93em;color:var(--text2);margin-bottom:18px" id="pinSetDesc">새 PIN 4자리를 입력하세요</p>
+    <div class="pin-dots" id="pinSetDots" style="margin-bottom:18px">
+      <span class="pin-dot"></span><span class="pin-dot"></span>
+      <span class="pin-dot"></span><span class="pin-dot"></span>
+    </div>
+    <div class="pin-keypad" style="margin:0 auto 14px">
+      <button class="pin-key" onclick="psKey('1')">1</button>
+      <button class="pin-key" onclick="psKey('2')">2</button>
+      <button class="pin-key" onclick="psKey('3')">3</button>
+      <button class="pin-key" onclick="psKey('4')">4</button>
+      <button class="pin-key" onclick="psKey('5')">5</button>
+      <button class="pin-key" onclick="psKey('6')">6</button>
+      <button class="pin-key" onclick="psKey('7')">7</button>
+      <button class="pin-key" onclick="psKey('8')">8</button>
+      <button class="pin-key" onclick="psKey('9')">9</button>
+      <button class="pin-key del" onclick="psDel()">←</button>
+      <button class="pin-key" onclick="psKey('0')">0</button>
+      <button class="pin-key invis" disabled></button>
+    </div>
+    <p class="pin-err hidden" id="pinSetErr">PIN이 일치하지 않습니다. 처음부터 다시 입력해 주세요.</p>
+    <div id="pinRemoveRow" class="hidden" style="text-align:center;margin-top:14px">
+      <button class="btn-danger" onclick="removePin()">PIN 해제하기</button>
+    </div>
+  </div>
+</div>
 
-    <div class="card">
-      <h2>🔎 이메일 유출 조회</h2>
-      <div class="breach-notice">
-        ⚠️ 이메일 주소를 입력하면 <b>어느 사이트에서 개인정보가 유출됐는지</b> 조회합니다.<br>
-        유출된 사이트 = 가입한 사이트라는 증거가 됩니다.<br>
-        <small style="color:#a07000">※ 해킹 피해가 없는 사이트는 목록에 나오지 않을 수 있습니다.</small>
+<!-- ══ MAIN APP ══ -->
+<div id="app">
+  <div class="container">
+
+    <div class="app-header">
+      <h1>🔐 비밀번호 메모장</h1>
+      <div class="hdr-btns">
+        <button class="hdr-btn" onclick="fontStep(-1)" title="글씨 작게">A−</button>
+        <button class="hdr-btn" onclick="fontStep(1)"  title="글씨 크게">A＋</button>
+        <button class="hdr-btn" id="darkBtn" onclick="toggleDarkBtn()" title="다크/라이트">🌙</button>
+        <button class="hdr-btn" onclick="openModal('settingModal')" title="설정">⚙️</button>
       </div>
-      <div class="form-group">
-        <label for="breachEmail">내 이메일 주소</label>
-        <input type="email" id="breachEmail" placeholder="example@gmail.com" />
-      </div>
-      <button class="btn-primary" id="breachBtn" onclick="checkBreach()">유출 조회하기</button>
     </div>
 
-    <div id="breachResult"></div>
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('memo',this)">📝 비밀번호 저장</button>
+      <button class="tab-btn"        onclick="switchTab('breach',this)">🔎 유출 조회</button>
+    </div>
+
+    <!-- ── TAB 1 ── -->
+    <div id="tab-memo" class="tab-panel active">
+
+      <div class="card">
+        <h2>➕ 새 항목 저장</h2>
+
+        <div class="form-group">
+          <label for="site">사이트 이름 *</label>
+          <input type="text" id="site" placeholder="예: 네이버, 카카오, 구글" />
+        </div>
+
+        <div class="form-group">
+          <label for="cat">카테고리</label>
+          <select id="cat">
+            <option value="기타">기타</option>
+            <option value="소셜">소셜</option>
+            <option value="쇼핑">쇼핑</option>
+            <option value="금융">금융</option>
+            <option value="업무">업무</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="userId">아이디 *</label>
+          <input type="text" id="userId" placeholder="아이디 또는 이메일" autocomplete="off" />
+        </div>
+
+        <div class="form-group">
+          <label for="pw">비밀번호 *</label>
+          <div class="pw-row">
+            <div class="pw-wrap">
+              <input type="password" id="pw" placeholder="비밀번호 입력"
+                     autocomplete="off" oninput="onPwInput()" />
+              <button class="eye-btn" onclick="toggleEye('pw',this)">👁</button>
+            </div>
+            <button class="btn-gen" onclick="genPw()">🎲 자동생성</button>
+          </div>
+          <div class="str-wrap"><div class="str-bar" id="strBar"></div></div>
+          <div class="str-text" id="strTxt"></div>
+          <div class="dup-warn hidden" id="dupWarn">⚠️ 다른 사이트와 같은 비밀번호입니다!</div>
+        </div>
+
+        <div class="form-group">
+          <label for="siteUrl">사이트 주소 (선택)</label>
+          <input type="url" id="siteUrl" placeholder="https://www.naver.com" />
+        </div>
+
+        <div class="form-group">
+          <label for="memo">메모 (선택)</label>
+          <textarea id="memo" placeholder="예: 2차 인증 있음, 보안 질문: 강아지 이름"></textarea>
+        </div>
+
+        <button class="btn-primary" onclick="saveItem()">저장하기</button>
+      </div>
+
+      <div class="filter-row">
+        <input type="text" id="search" placeholder="🔍 사이트 이름으로 검색..." oninput="renderList()" />
+        <select id="catFilter" onchange="renderList()">
+          <option value="">전체</option>
+          <option value="소셜">소셜</option>
+          <option value="쇼핑">쇼핑</option>
+          <option value="금융">금융</option>
+          <option value="업무">업무</option>
+          <option value="기타">기타</option>
+        </select>
+      </div>
+
+      <div class="list-title" id="listTitle"></div>
+      <div id="list"></div>
+    </div>
+
+    <!-- ── TAB 2 ── -->
+    <div id="tab-breach" class="tab-panel">
+      <div class="card">
+        <h2>🔎 이메일 유출 조회</h2>
+        <div class="breach-notice">
+          ⚠️ 이메일을 입력하면 어느 사이트에서 내 정보가 유출됐는지 확인합니다.<br>
+          유출된 사이트 = 가입한 사이트라는 증거가 됩니다.<br>
+          <small>※ 해킹 피해가 없는 사이트는 목록에 나오지 않을 수 있습니다.</small>
+        </div>
+        <div class="form-group">
+          <label for="breachEmail">내 이메일 주소</label>
+          <input type="email" id="breachEmail" placeholder="example@gmail.com" />
+        </div>
+        <button class="btn-primary" id="breachBtn" onclick="checkBreach()">유출 조회하기</button>
+      </div>
+      <div id="breachResult"></div>
+    </div>
+
   </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-  /* ── 탭 전환 ── */
-  function switchTab(name) {
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('tab-' + name).classList.add('active');
-    event.currentTarget.classList.add('active');
+// ── KEYS ──
+const K_ITEMS = 'passecure_items';
+const K_PIN   = 'passecure_pin';
+const K_DARK  = 'passecure_dark';
+const K_FONT  = 'passecure_font';
+const FONTS   = ['font-sm','font-md','font-lg','font-xl'];
+const FLABELS = { 'font-sm':'작게','font-md':'보통','font-lg':'크게','font-xl':'매우 크게' };
+
+// ── STORAGE ──
+const loadItems = () => { try { return JSON.parse(localStorage.getItem(K_ITEMS))||[]; } catch { return []; } };
+const saveItems = d  => localStorage.setItem(K_ITEMS, JSON.stringify(d));
+
+// ── INIT ──
+(function init() {
+  const dark = localStorage.getItem(K_DARK) === '1';
+  if (dark) {
+    document.body.classList.add('dark');
+    document.getElementById('darkBtn').textContent = '☀️';
+    document.getElementById('darkChk').checked = true;
   }
+  const font = localStorage.getItem(K_FONT) || 'font-md';
+  applyFont(font, false);
 
-  /* ── 비밀번호 저장 탭 ── */
-  const STORAGE_KEY = 'passecure_items';
+  const pin = localStorage.getItem(K_PIN);
+  if (pin) document.getElementById('pinOverlay').classList.remove('hidden');
 
-  function loadItems() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-    catch { return []; }
-  }
-
-  function saveItems(items) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }
-
-  function saveItem() {
-    const site   = document.getElementById('site').value.trim();
-    const userId = document.getElementById('userId').value.trim();
-    const pw     = document.getElementById('pw').value;
-
-    if (!site)   { showToast('사이트 이름을 입력해 주세요.'); return; }
-    if (!userId) { showToast('아이디를 입력해 주세요.'); return; }
-    if (!pw)     { showToast('비밀번호를 입력해 주세요.'); return; }
-
-    const items = loadItems();
-    items.unshift({ id: Date.now(), site, userId, pw });
-    saveItems(items);
-
-    document.getElementById('site').value = '';
-    document.getElementById('userId').value = '';
-    document.getElementById('pw').value = '';
-
-    showToast('저장되었습니다!');
-    renderList();
-  }
-
-  function deleteItem(id) {
-    if (!confirm('이 항목을 삭제할까요?')) return;
-    saveItems(loadItems().filter(item => item.id !== id));
-    renderList();
-    showToast('삭제되었습니다.');
-  }
-
-  function copyText(itemId, field, btnEl) {
-    const item = loadItems().find(i => i.id === itemId);
-    if (!item) return;
-    const text = field === 'userId' ? item.userId : item.pw;
-
-    navigator.clipboard.writeText(text).then(() => {
-      markCopied(btnEl);
-    }).catch(() => {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.style.cssText = 'position:fixed;opacity:0';
-      document.body.appendChild(ta);
-      ta.focus(); ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-      markCopied(btnEl);
-    });
-  }
-
-  function markCopied(btnEl) {
-    btnEl.textContent = '복사됨 ✓';
-    btnEl.classList.add('copied');
-    setTimeout(() => { btnEl.textContent = '복사'; btnEl.classList.remove('copied'); }, 1800);
-  }
-
-  function togglePw() {
-    const input = document.getElementById('pw');
-    input.type = input.type === 'password' ? 'text' : 'password';
-  }
-
-  function renderList() {
-    const query    = document.getElementById('search').value.trim().toLowerCase();
-    const items    = loadItems();
-    const filtered = query ? items.filter(i => i.site.toLowerCase().includes(query)) : items;
-
-    document.getElementById('listTitle').textContent = `저장된 항목 (${filtered.length}개)`;
-
-    if (filtered.length === 0) {
-      document.getElementById('list').innerHTML =
-        `<p class="empty-msg">${query ? '검색 결과가 없습니다.' : '저장된 항목이 없습니다.'}</p>`;
-      return;
-    }
-
-    document.getElementById('list').innerHTML = filtered.map(item => `
-      <div class="item-card">
-        <div class="item-site">🌐 ${escHtml(item.site)}</div>
-        <div class="item-row">
-          <span class="item-label">아이디</span>
-          <span class="item-value">${escHtml(item.userId)}</span>
-          <button class="btn-copy" onclick="copyText(${item.id},'userId',this)">복사</button>
-        </div>
-        <div class="item-row">
-          <span class="item-label">비밀번호</span>
-          <span class="item-value masked">••••••••</span>
-          <button class="btn-copy" onclick="copyText(${item.id},'pw',this)">복사</button>
-        </div>
-        <div class="item-actions">
-          <button class="btn-delete" onclick="deleteItem(${item.id})">삭제</button>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  /* ── 이메일 유출 조회 탭 ── */
-  async function checkBreach() {
-    const email = document.getElementById('breachEmail').value.trim();
-    if (!email || !email.includes('@')) {
-      showToast('이메일 주소를 올바르게 입력해 주세요.');
-      return;
-    }
-
-    const btn = document.getElementById('breachBtn');
-    const resultEl = document.getElementById('breachResult');
-
-    btn.disabled = true;
-    btn.textContent = '조회 중...';
-    resultEl.innerHTML = '<div class="loading-spinner">🔍 조회 중입니다... 잠시만 기다려 주세요.</div>';
-
-    try {
-      const res = await fetch(
-        'https://api.xposedornot.com/v1/check-email/' + encodeURIComponent(email),
-        { headers: { 'Accept': 'application/json' } }
-      );
-
-      if (res.status === 404) {
-        resultEl.innerHTML = `
-          <div class="breach-safe">
-            ✅ 다행이에요!<br><br>
-            <b>${escHtml(email)}</b> 주소는<br>
-            알려진 유출 사고에서 발견되지 않았습니다.
-          </div>`;
-        return;
-      }
-
-      if (!res.ok) throw new Error('API 오류');
-
-      const data = await res.json();
-      const breaches = data?.ExposedBreaches?.breaches_details || [];
-
-      if (breaches.length === 0) {
-        resultEl.innerHTML = `
-          <div class="breach-safe">
-            ✅ 다행이에요!<br><br>
-            <b>${escHtml(email)}</b> 주소는<br>
-            알려진 유출 사고에서 발견되지 않았습니다.
-          </div>`;
-        return;
-      }
-
-      resultEl.innerHTML = `
-        <div class="breach-found-header">
-          ⚠️ <b>${escHtml(email)}</b> 주소가 <b>${breaches.length}개</b> 사이트 유출 사고에서 발견됐습니다.<br>
-          <span style="font-size:0.95rem;font-weight:400;">아래 사이트들은 가입된 사이트일 가능성이 높습니다. 비밀번호를 바꿔두세요!</span>
-        </div>
-        ${breaches.map(b => `
-          <div class="breach-item">
-            <div class="breach-item-name">🌐 ${escHtml(b.breach || '알 수 없음')}</div>
-            ${b.domain ? `<div class="breach-item-domain">${escHtml(b.domain)}</div>` : ''}
-            <div class="breach-item-meta">
-              ${b.xposed_date ? `<span class="breach-tag date">📅 유출일: ${escHtml(b.xposed_date)}</span>` : ''}
-              ${b.xposed_data ? b.xposed_data.split(';').map(d =>
-                `<span class="breach-tag data">${escHtml(d.trim())}</span>`
-              ).join('') : ''}
-            </div>
-          </div>
-        `).join('')}`;
-
-    } catch (err) {
-      resultEl.innerHTML = `
-        <div class="breach-error">
-          😥 조회에 실패했습니다.<br><br>
-          브라우저 보안 설정으로 인해 직접 조회가 안 될 수 있어요.<br><br>
-          아래 링크에서 직접 확인해 보세요:<br><br>
-          <a href="https://haveibeenpwned.com/account/${encodeURIComponent(email)}" target="_blank" rel="noopener">
-            🔗 haveibeenpwned.com 에서 확인하기
-          </a>
-        </div>`;
-    } finally {
-      btn.disabled = false;
-      btn.textContent = '유출 조회하기';
-    }
-  }
-
-  /* ── 공통 유틸 ── */
-  function escHtml(str) {
-    return String(str)
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;');
-  }
-
-  function showToast(msg) {
-    const toast = document.getElementById('toast');
-    toast.textContent = msg;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2200);
-  }
-
-  /* 엔터키로 저장 */
-  ['site','userId','pw'].forEach(id => {
-    document.getElementById(id).addEventListener('keydown', e => {
-      if (e.key === 'Enter') saveItem();
-    });
-  });
-  document.getElementById('breachEmail').addEventListener('keydown', e => {
-    if (e.key === 'Enter') checkBreach();
-  });
-
+  refreshPinStatus();
   renderList();
+
+  ['site','userId','siteUrl'].forEach(id =>
+    document.getElementById(id).addEventListener('keydown', e => { if(e.key==='Enter') saveItem(); })
+  );
+  document.getElementById('breachEmail').addEventListener('keydown', e => { if(e.key==='Enter') checkBreach(); });
+})();
+
+// ── MODAL HELPERS ──
+const openModal  = id => document.getElementById(id).classList.remove('hidden');
+const closeModal = id => document.getElementById(id).classList.add('hidden');
+function bgClose(id) { closeModal(id); }
+
+// ── DARK MODE ──
+function applyDark(on) {
+  document.body.classList.toggle('dark', on);
+  document.getElementById('darkBtn').textContent = on ? '☀️' : '🌙';
+  document.getElementById('darkChk').checked = on;
+  localStorage.setItem(K_DARK, on ? '1' : '0');
+}
+function toggleDarkBtn() { applyDark(!document.body.classList.contains('dark')); }
+
+// ── FONT SIZE ──
+function applyFont(size, toast=true) {
+  FONTS.forEach(f => document.body.classList.remove(f));
+  document.body.classList.add(size);
+  localStorage.setItem(K_FONT, size);
+  document.querySelectorAll('.fs-btn').forEach(b => b.classList.toggle('active', b.dataset.fs===size));
+  if (toast) showToast('글씨 크기: ' + FLABELS[size]);
+}
+function setFont(size) { applyFont(size); }
+function fontStep(dir) {
+  const cur = FONTS.findIndex(f => document.body.classList.contains(f));
+  const nxt = Math.max(0, Math.min(FONTS.length-1, cur+dir));
+  applyFont(FONTS[nxt]);
+}
+
+// ── PIN UNLOCK ──
+let _pin = '';
+function pinKey(d) {
+  if (_pin.length >= 4) return;
+  _pin += d;
+  dots('pinDots', _pin.length);
+  if (_pin.length === 4) setTimeout(verifyPin, 100);
+}
+function pinDel() {
+  _pin = _pin.slice(0,-1);
+  dots('pinDots', _pin.length);
+  document.getElementById('pinErr').classList.add('hidden');
+}
+function verifyPin() {
+  if (_pin === localStorage.getItem(K_PIN)) {
+    document.getElementById('pinOverlay').classList.add('hidden');
+  } else {
+    document.getElementById('pinErr').classList.remove('hidden');
+  }
+  _pin = ''; dots('pinDots', 0);
+}
+
+// ── PIN SETUP ──
+let _psVal='', _psFirst='', _psStep=1;
+function openPinSetting() {
+  _psStep=1; _psFirst=''; _psVal='';
+  dots('pinSetDots',0);
+  document.getElementById('pinSetTitle').textContent = '🔒 PIN 설정';
+  document.getElementById('pinSetDesc').textContent  = '새 PIN 4자리를 입력하세요';
+  document.getElementById('pinSetErr').classList.add('hidden');
+  const hasPIN = !!localStorage.getItem(K_PIN);
+  document.getElementById('pinRemoveRow').classList.toggle('hidden', !hasPIN);
+  openModal('pinSetModal');
+}
+function psKey(d) {
+  if (_psVal.length >= 4) return;
+  _psVal += d;
+  dots('pinSetDots', _psVal.length);
+  if (_psVal.length === 4) setTimeout(processPs, 100);
+}
+function psDel() { _psVal=_psVal.slice(0,-1); dots('pinSetDots',_psVal.length); }
+function processPs() {
+  if (_psStep === 1) {
+    _psFirst=_psVal; _psStep=2; _psVal='';
+    dots('pinSetDots',0);
+    document.getElementById('pinSetDesc').textContent='PIN을 한 번 더 입력해 주세요';
+  } else {
+    if (_psVal === _psFirst) {
+      localStorage.setItem(K_PIN, _psVal);
+      closeModal('pinSetModal'); refreshPinStatus();
+      showToast('PIN이 설정되었습니다!');
+    } else {
+      document.getElementById('pinSetErr').classList.remove('hidden');
+      _psStep=1; _psFirst=''; _psVal='';
+      dots('pinSetDots',0);
+      document.getElementById('pinSetDesc').textContent='새 PIN 4자리를 입력하세요';
+    }
+  }
+}
+function removePin() {
+  if (!confirm('PIN을 해제하면 앱 잠금이 풀립니다. 계속할까요?')) return;
+  localStorage.removeItem(K_PIN);
+  closeModal('pinSetModal'); refreshPinStatus();
+  showToast('PIN이 해제되었습니다.');
+}
+function openPinSetup() { openPinSetting(); }
+function refreshPinStatus() {
+  const has = !!localStorage.getItem(K_PIN);
+  document.getElementById('pinStatusTxt').textContent = has ? '설정됨 ✓' : '설정 안 됨';
+  document.getElementById('pinSetBtn').textContent    = has ? 'PIN 변경'  : 'PIN 설정';
+}
+
+// ── DOTS HELPER ──
+function dots(containerId, n) {
+  document.getElementById(containerId).querySelectorAll('.pin-dot')
+    .forEach((d,i) => d.classList.toggle('filled', i < n));
+}
+
+// ── PASSWORD UTILS ──
+function genPw() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%^&*';
+  const arr   = new Uint8Array(16);
+  crypto.getRandomValues(arr);
+  const pw = Array.from(arr).map(b => chars[b % chars.length]).join('');
+  const el = document.getElementById('pw');
+  el.value = pw; el.type = 'text';
+  onPwInput();
+  showToast('비밀번호가 생성됐습니다! 꼭 저장하세요.');
+}
+function toggleEye(inputId, btn) {
+  const el = document.getElementById(inputId);
+  const isText = el.type === 'text';
+  el.type = isText ? 'password' : 'text';
+  btn.textContent = isText ? '👁' : '🙈';
+}
+const STR = [
+  {w:'0%',   c:'#ccc',    t:'',       cls:''},
+  {w:'25%',  c:'#e74c3c', t:'매우 약함', cls:'str-1'},
+  {w:'50%',  c:'#f39c12', t:'약함',    cls:'str-2'},
+  {w:'75%',  c:'#3498db', t:'보통',    cls:'str-3'},
+  {w:'100%', c:'#27ae60', t:'강함',    cls:'str-4'},
+];
+function pwStrength(pw) {
+  if (!pw) return 0;
+  let s=0;
+  if (pw.length>=8)  s++;
+  if (pw.length>=12) s++;
+  if (/[A-Z]/.test(pw)&&/[a-z]/.test(pw)) s++;
+  if (/[0-9]/.test(pw)) s++;
+  if (/[^A-Za-z0-9]/.test(pw)) s++;
+  return Math.min(4, s);
+}
+function onPwInput() {
+  const pw = document.getElementById('pw').value;
+  const s  = pwStrength(pw);
+  const bar = document.getElementById('strBar'), txt = document.getElementById('strTxt');
+  bar.style.width = STR[s].w; bar.style.background = STR[s].c;
+  txt.textContent = STR[s].t; txt.className = 'str-text ' + STR[s].cls;
+  const dup = pw.length>0 && loadItems().some(i => i.pw === pw);
+  document.getElementById('dupWarn').classList.toggle('hidden', !dup);
+}
+
+// ── ITEM CRUD ──
+function saveItem() {
+  const site    = document.getElementById('site').value.trim();
+  const cat     = document.getElementById('cat').value;
+  const userId  = document.getElementById('userId').value.trim();
+  const pw      = document.getElementById('pw').value;
+  const siteUrl = document.getElementById('siteUrl').value.trim();
+  const memo    = document.getElementById('memo').value.trim();
+  if (!site)   { showToast('사이트 이름을 입력해 주세요.'); return; }
+  if (!userId) { showToast('아이디를 입력해 주세요.'); return; }
+  if (!pw)     { showToast('비밀번호를 입력해 주세요.'); return; }
+  const items = loadItems();
+  items.unshift({ id: Date.now(), site, cat, userId, pw, siteUrl, memo });
+  saveItems(items);
+  ['site','userId','siteUrl','memo'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('pw').value=''; document.getElementById('pw').type='password';
+  document.getElementById('strBar').style.width='0';
+  document.getElementById('strTxt').textContent='';
+  document.getElementById('dupWarn').classList.add('hidden');
+  showToast('저장되었습니다!');
+  renderList();
+}
+function deleteItem(id) {
+  if (!confirm('이 항목을 삭제할까요?')) return;
+  saveItems(loadItems().filter(i => i.id !== id));
+  renderList(); showToast('삭제되었습니다.');
+}
+
+// ── RENDER ──
+function renderList() {
+  const q   = document.getElementById('search').value.trim().toLowerCase();
+  const cf  = document.getElementById('catFilter').value;
+  const all = loadItems();
+  const list = all.filter(i =>
+    (!q  || i.site.toLowerCase().includes(q) || (i.userId||'').toLowerCase().includes(q)) &&
+    (!cf || i.cat === cf)
+  );
+  document.getElementById('listTitle').textContent = `저장된 항목 (${list.length}개)`;
+  if (!list.length) {
+    document.getElementById('list').innerHTML =
+      `<p class="empty-msg">${q||cf ? '검색 결과가 없습니다.' : '저장된 항목이 없습니다.'}</p>`;
+    return;
+  }
+  const allPws = all.map(i => i.pw);
+  document.getElementById('list').innerHTML = list.map(item => {
+    const isDup = allPws.filter(p => p === item.pw).length > 1;
+    const url   = (item.siteUrl||'').trim();
+    const safe  = safeUrl(url);
+    return `
+      <div class="item-card">
+        <div class="item-head">
+          <span class="item-site">🌐 ${h(item.site)}</span>
+          <span class="cat-badge cat-${h(item.cat||'기타')}">${h(item.cat||'기타')}</span>
+        </div>
+        ${safe ? `<a class="visit-btn" href="${h(safe)}" target="_blank" rel="noopener">🔗 사이트 방문</a>` : ''}
+        <div class="item-row">
+          <span class="item-lbl">아이디</span>
+          <span class="item-val">${h(item.userId)}</span>
+          <button class="btn-copy" onclick="copyField(${item.id},'userId',this)">복사</button>
+        </div>
+        <div class="item-row">
+          <span class="item-lbl">비밀번호</span>
+          <span class="item-val masked">••••••••</span>
+          ${isDup ? `<span class="dup-icon" title="다른 사이트와 같은 비밀번호!">⚠️</span>` : ''}
+          <button class="btn-copy" onclick="copyField(${item.id},'pw',this)">복사</button>
+        </div>
+        ${item.memo ? `<div class="item-notes">📝 ${h(item.memo)}</div>` : ''}
+        <div class="item-foot">
+          <button class="btn-danger" onclick="deleteItem(${item.id})">삭제</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ── COPY ──
+function copyField(id, field, btn) {
+  const item = loadItems().find(i => i.id === id);
+  if (!item) return;
+  const cb = () => {
+    btn.textContent='복사됨 ✓'; btn.classList.add('copied');
+    setTimeout(()=>{ btn.textContent='복사'; btn.classList.remove('copied'); }, 1800);
+  };
+  if (navigator.clipboard) navigator.clipboard.writeText(item[field]).then(cb).catch(()=>fallback(item[field],cb));
+  else fallback(item[field], cb);
+}
+function fallback(txt, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = txt; ta.style.cssText='position:fixed;opacity:0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  document.execCommand('copy'); document.body.removeChild(ta); cb();
+}
+
+// ── EXPORT / IMPORT ──
+function exportData() {
+  const items = loadItems();
+  if (!items.length) { showToast('저장된 항목이 없습니다.'); return; }
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(new Blob([JSON.stringify(items,null,2)],{type:'application/json'})),
+    download: 'passecure_' + new Date().toISOString().slice(0,10) + '.json'
+  });
+  a.click(); URL.revokeObjectURL(a.href);
+  showToast('백업 파일을 저장했습니다.');
+}
+function importData(e) {
+  const file = e.target.files[0]; if (!file) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!Array.isArray(data)) throw '';
+      if (!confirm(`${data.length}개 항목을 불러옵니다.\n기존 데이터는 모두 삭제됩니다. 계속할까요?`)) return;
+      saveItems(data); renderList(); showToast(`${data.length}개 항목을 불러왔습니다!`);
+    } catch { showToast('파일 형식이 올바르지 않습니다.'); }
+  };
+  r.readAsText(file); e.target.value='';
+}
+
+// ── TABS ──
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ── BREACH CHECK ──
+async function checkBreach() {
+  const email = document.getElementById('breachEmail').value.trim();
+  if (!email||!email.includes('@')) { showToast('이메일을 올바르게 입력해 주세요.'); return; }
+  const btn=document.getElementById('breachBtn'), res=document.getElementById('breachResult');
+  btn.disabled=true; btn.textContent='조회 중...';
+  res.innerHTML='<div class="loading-msg">🔍 조회 중입니다... 잠시만 기다려 주세요.</div>';
+  try {
+    const r = await fetch('https://api.xposedornot.com/v1/check-email/'+encodeURIComponent(email),
+                          {headers:{Accept:'application/json'}});
+    if (r.status===404) { res.innerHTML=safeTpl(email); return; }
+    if (!r.ok) throw '';
+    const data     = await r.json();
+    const breaches = data?.ExposedBreaches?.breaches_details||[];
+    if (!breaches.length) { res.innerHTML=safeTpl(email); return; }
+    res.innerHTML=`
+      <div class="breach-found-hdr">⚠️ <b>${h(email)}</b> 주소가 <b>${breaches.length}개</b> 사이트 유출 사고에서 발견됐습니다.<br>
+      <span style="font-size:.88em;font-weight:400">아래 사이트 비밀번호를 꼭 변경하세요!</span></div>
+      ${breaches.map(b=>`
+        <div class="breach-item">
+          <div class="breach-name">🌐 ${h(b.breach||'알 수 없음')}</div>
+          ${b.domain?`<div class="breach-domain">${h(b.domain)}</div>`:''}
+          <div class="breach-tags">
+            ${b.xposed_date?`<span class="btag date">📅 ${h(b.xposed_date)}</span>`:''}
+            ${(b.xposed_data||'').split(';').filter(Boolean).map(d=>`<span class="btag data">${h(d.trim())}</span>`).join('')}
+          </div>
+        </div>`).join('')}`;
+  } catch {
+    res.innerHTML=`<div class="breach-err">😥 직접 조회에 실패했습니다.<br><br>
+      아래 링크에서 직접 확인해 보세요:<br><br>
+      <a href="https://haveibeenpwned.com/" target="_blank" rel="noopener">🔗 haveibeenpwned.com 에서 확인</a></div>`;
+  } finally { btn.disabled=false; btn.textContent='유출 조회하기'; }
+}
+const safeTpl = email => `<div class="breach-safe">✅ 다행이에요!<br><br><b>${h(email)}</b> 주소는<br>알려진 유출 사고에서 발견되지 않았습니다.</div>`;
+
+// ── UTILS ──
+function h(s) {
+  return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function safeUrl(url) {
+  if (!url) return '';
+  try { const u=new URL(url); return (u.protocol==='https:'||u.protocol==='http:') ? url : ''; }
+  catch { return ''; }
+}
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('show'), 2400);
+}
 </script>
 
 </body>
