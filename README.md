@@ -2,9 +2,20 @@
 
 ## ▶ 클릭하면 바로 실행됩니다
 
-**[👉 비밀번호 메모장 열기](https://htmlpreview.github.io/?https://github.com/lgw7126/Passecure/blob/claude/password-memo-webapp-emrdep/index.html)**
+**[👉 비밀번호 메모장 열기](https://lgw7126.github.io/Passecure/)**
 
 > 위 링크를 클릭하면 설치 없이 브라우저에서 바로 사용할 수 있습니다.
+>
+> ⚠️ 처음 한 번만 GitHub Pages를 켜야 합니다 (아래 "최초 1회 설정" 참고).
+> 켜고 나면 항상 최신 화면이 안정적으로 나옵니다.
+
+### 최초 1회 설정 (GitHub Pages 켜기)
+
+1. GitHub 저장소에서 **Settings**(설정) 탭으로 이동
+2. 왼쪽 메뉴에서 **Pages** 클릭
+3. **Source**(소스)를 **Deploy from a branch** 로 선택
+4. **Branch**(브랜치)를 **main**, 폴더는 **/ (root)** 로 선택 후 **Save**
+5. 약 1분 뒤 위 링크 `https://lgw7126.github.io/Passecure/` 접속 → 완료!
 
 ---
 
