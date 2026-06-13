@@ -560,6 +560,23 @@
   </div>
 </div>
 
+<!-- ══ 첫 실행 환영 화면 ══ -->
+<div id="welcomeOverlay" class="pin-overlay hidden">
+  <div class="pin-box" style="text-align:center">
+    <div style="font-size:3em;margin-bottom:8px">🔐</div>
+    <h2 style="margin-bottom:10px">환영합니다!</h2>
+    <p style="font-size:.98em;color:var(--text2);line-height:1.7;margin-bottom:8px">
+      이 앱은 <b>나만 보는 비밀번호 메모장</b>이에요.<br>
+      다른 사람이 못 열도록 먼저 <b>나만의 PIN 번호</b>를<br>설정하시는 걸 권장합니다.
+    </p>
+    <p style="font-size:.85em;color:var(--text3);line-height:1.6;margin-bottom:24px">
+      4자리 숫자만 기억하면 됩니다.
+    </p>
+    <button class="btn-primary" style="margin-bottom:10px" onclick="welcomeSetPin()">🔒 PIN 번호 설정하기</button>
+    <button class="btn-cancel" style="display:block" onclick="welcomeSkip()">나중에 설정하기</button>
+  </div>
+</div>
+
 <!-- ══ SETTINGS MODAL ══ -->
 <div id="settingModal" class="modal-bg hidden" onclick="bgClose('settingModal')">
   <div class="modal-sheet" onclick="event.stopPropagation()">
@@ -799,6 +816,7 @@ const K_ITEMS = 'passecure_items';
 const K_PIN   = 'passecure_pin';
 const K_DARK  = 'passecure_dark';
 const K_FONT  = 'passecure_font';
+const K_WELCOMED = 'passecure_welcomed';
 const FONTS   = ['font-sm','font-md','font-lg','font-xl'];
 const FLABELS = { 'font-sm':'작게','font-md':'보통','font-lg':'크게','font-xl':'매우 크게' };
 
@@ -818,7 +836,13 @@ const saveItems = d  => localStorage.setItem(K_ITEMS, JSON.stringify(d));
   applyFont(font, false);
 
   const pin = localStorage.getItem(K_PIN);
-  if (pin) document.getElementById('pinOverlay').classList.remove('hidden');
+  if (pin) {
+    // PIN이 설정돼 있으면 잠금 화면 먼저
+    document.getElementById('pinOverlay').classList.remove('hidden');
+  } else if (!localStorage.getItem(K_WELCOMED)) {
+    // PIN이 없고 첫 방문이면 환영(=PIN 설정 권장) 화면 먼저
+    document.getElementById('welcomeOverlay').classList.remove('hidden');
+  }
 
   refreshPinStatus();
   renderList();
@@ -887,6 +911,18 @@ function forgotPin() {
     refreshPinStatus();
     showToast('PIN이 초기화됐습니다. 설정에서 새 PIN을 설정하세요.');
   }
+}
+
+// ── 첫 실행 환영 화면 ──
+function welcomeSetPin() {
+  localStorage.setItem(K_WELCOMED, '1');
+  document.getElementById('welcomeOverlay').classList.add('hidden');
+  openPinSetup();
+}
+function welcomeSkip() {
+  localStorage.setItem(K_WELCOMED, '1');
+  document.getElementById('welcomeOverlay').classList.add('hidden');
+  showToast('나중에 ⚙️ 설정에서 PIN을 설정할 수 있어요.');
 }
 
 // ── PIN SETUP ──
