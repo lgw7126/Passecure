@@ -381,10 +381,70 @@
       white-space: pre-wrap; word-break: break-all;
     }
     .item-foot {
-      display: flex; justify-content: flex-end;
+      display: flex; justify-content: flex-end; gap: 7px;
       margin-top: 9px; padding-top: 9px;
       border-top: 1px solid var(--border);
     }
+    .btn-edit {
+      padding: 7px 13px; background: var(--primary-bg); color: var(--primary);
+      border: none; border-radius: 8px;
+      font-size: .85em; font-weight: 700; cursor: pointer; transition: filter .15s;
+    }
+    .btn-edit:hover { filter: brightness(.93); }
+
+    /* 비밀번호 교체 알림 */
+    .rotate-warn {
+      display: flex; align-items: center; gap: 6px;
+      margin: 8px 0; padding: 8px 11px;
+      background: var(--warn-bg); color: var(--warn-color);
+      border-radius: 8px; font-size: .82em; font-weight: 700;
+      border-left: 3px solid #f59e0b;
+    }
+
+    /* 편집 모드 카드 강조 */
+    .card.editing { border: 2px solid var(--primary); }
+    .edit-banner {
+      display: none;
+      background: var(--primary-bg); color: var(--primary);
+      padding: 9px 13px; border-radius: var(--radius-sm);
+      font-size: .88em; font-weight: 700; margin-bottom: 14px;
+    }
+    .card.editing .edit-banner { display: block; }
+    .btn-cancel {
+      width: 100%; padding: 13px; margin-top: 8px;
+      background: transparent; color: var(--text3);
+      border: 2px solid var(--border); border-radius: var(--radius-sm);
+      font-size: .95em; font-weight: 700; cursor: pointer; transition: all .15s;
+      display: none;
+    }
+    .card.editing .btn-cancel { display: block; }
+    .btn-cancel:hover { border-color: var(--text3); }
+
+    /* ── 보안 리포트 ── */
+    .report-score {
+      text-align: center; padding: 18px 14px;
+      border-radius: var(--radius); margin-bottom: 18px;
+    }
+    .report-score .score-num { font-size: 2.6em; font-weight: 800; line-height: 1; }
+    .report-score .score-lbl { font-size: .95em; font-weight: 700; margin-top: 6px; }
+    .score-good   { background: var(--success-bg); color: var(--success); }
+    .score-mid    { background: var(--warn-bg);    color: var(--warn-color); }
+    .score-bad    { background: var(--danger-bg);  color: var(--danger); }
+    .report-stat {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 15px; margin-bottom: 9px;
+      background: var(--surface2); border-radius: var(--radius-sm);
+      border-left: 4px solid var(--border);
+    }
+    .report-stat.bad  { border-left-color: #e74c3c; }
+    .report-stat.warn { border-left-color: #f59e0b; }
+    .report-stat.ok   { border-left-color: #27ae60; }
+    .report-stat-label { font-size: .95em; font-weight: 600; color: var(--text); }
+    .report-stat-label small { display: block; font-size: .8em; color: var(--text3); font-weight: 400; margin-top: 2px; }
+    .report-stat-count { font-size: 1.3em; font-weight: 800; flex-shrink: 0; }
+    .report-stat.bad  .report-stat-count { color: #e74c3c; }
+    .report-stat.warn .report-stat-count { color: #f59e0b; }
+    .report-stat.ok   .report-stat-count { color: #27ae60; }
 
     /* ── URL 자동완성 ── */
     .url-wrap { position: relative; }
@@ -582,6 +642,17 @@
   </div>
 </div>
 
+<!-- ══ SECURITY REPORT MODAL ══ -->
+<div id="reportModal" class="modal-bg hidden" onclick="bgClose('reportModal')">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-head">
+      <h2>🛡️ 보안 점검 리포트</h2>
+      <button class="modal-close" onclick="closeModal('reportModal')">✕</button>
+    </div>
+    <div id="reportBody"></div>
+  </div>
+</div>
+
 <!-- ══ MAIN APP ══ -->
 <div id="app">
   <div class="container">
@@ -592,6 +663,7 @@
         <button class="hdr-btn" onclick="fontStep(-1)" title="글씨 작게">A−</button>
         <button class="hdr-btn" onclick="fontStep(1)"  title="글씨 크게">A＋</button>
         <button class="hdr-btn" id="darkBtn" onclick="toggleDarkBtn()" title="다크/라이트">🌙</button>
+        <button class="hdr-btn" onclick="openReport()" title="보안 점검">🛡️</button>
         <button class="hdr-btn" onclick="openModal('settingModal')" title="설정">⚙️</button>
       </div>
     </div>
@@ -604,8 +676,9 @@
     <!-- ── TAB 1 ── -->
     <div id="tab-memo" class="tab-panel active">
 
-      <div class="card">
-        <h2>➕ 새 항목 저장</h2>
+      <div class="card" id="formCard">
+        <h2 id="formTitle">➕ 새 항목 저장</h2>
+        <div class="edit-banner">✏️ 항목을 수정하는 중입니다.</div>
 
         <div class="form-group">
           <label for="site">사이트 이름 *</label>
@@ -667,7 +740,8 @@
           <label for="alertChk">🔴 주의 관리 — 결제 정보·계좌가 연동된 중요 사이트</label>
         </div>
 
-        <button class="btn-primary" onclick="saveItem()">저장하기</button>
+        <button class="btn-primary" id="saveBtn" onclick="saveItem()">저장하기</button>
+        <button class="btn-cancel" onclick="cancelEdit()">취소</button>
       </div>
 
       <div class="filter-row">
@@ -902,6 +976,10 @@ function onPwInput() {
 }
 
 // ── ITEM CRUD ──
+const ROTATE_DAYS = 180;                       // 비밀번호 교체 권장 기간 (6개월)
+const DAY_MS = 1000 * 60 * 60 * 24;
+let editingId = null;                          // 수정 중인 항목 id (없으면 신규)
+
 function saveItem() {
   const site    = document.getElementById('site').value.trim();
   const cat     = document.getElementById('cat').value;
@@ -913,22 +991,83 @@ function saveItem() {
   if (!site)   { showToast('사이트 이름을 입력해 주세요.'); return; }
   if (!userId) { showToast('아이디를 입력해 주세요.'); return; }
   if (!pw)     { showToast('비밀번호를 입력해 주세요.'); return; }
+
   const items = loadItems();
-  items.unshift({ id: Date.now(), site, cat, userId, pw, siteUrl, memo, alert });
-  saveItems(items);
+  const now = Date.now();
+
+  if (editingId !== null) {
+    // 수정 모드
+    const idx = items.findIndex(i => i.id === editingId);
+    if (idx === -1) { cancelEdit(); return; }
+    const old = items[idx];
+    const pwChanged = old.pw !== pw;
+    items[idx] = {
+      ...old, site, cat, userId, pw, siteUrl, memo, alert,
+      // 비밀번호가 바뀌었을 때만 교체 시각 갱신
+      pwChangedAt: pwChanged ? now : (old.pwChangedAt || old.id)
+    };
+    saveItems(items);
+    showToast('수정되었습니다!');
+  } else {
+    // 신규 저장
+    items.unshift({ id: now, site, cat, userId, pw, siteUrl, memo, alert, pwChangedAt: now });
+    saveItems(items);
+    showToast('저장되었습니다!');
+  }
+  resetForm();
+  renderList();
+}
+
+function resetForm() {
+  editingId = null;
   ['site','userId','siteUrl','memo'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('cat').value = '포털';
   document.getElementById('pw').value=''; document.getElementById('pw').type='password';
   document.getElementById('alertChk').checked = false;
   document.getElementById('strBar').style.width='0';
   document.getElementById('strTxt').textContent='';
   document.getElementById('dupWarn').classList.add('hidden');
-  showToast('저장되었습니다!');
-  renderList();
+  document.getElementById('formCard').classList.remove('editing');
+  document.getElementById('formTitle').textContent = '➕ 새 항목 저장';
+  document.getElementById('saveBtn').textContent = '저장하기';
 }
+
+function startEdit(id) {
+  const item = loadItems().find(i => i.id === id);
+  if (!item) return;
+  editingId = id;
+  document.getElementById('site').value    = item.site || '';
+  document.getElementById('cat').value     = item.cat || '기타';
+  document.getElementById('userId').value  = item.userId || '';
+  document.getElementById('pw').value      = item.pw || '';
+  document.getElementById('pw').type       = 'password';
+  document.getElementById('siteUrl').value = item.siteUrl || '';
+  document.getElementById('memo').value    = item.memo || '';
+  document.getElementById('alertChk').checked = !!item.alert;
+  onPwInput();
+  document.getElementById('formCard').classList.add('editing');
+  document.getElementById('formTitle').textContent = '✏️ 항목 수정';
+  document.getElementById('saveBtn').textContent = '수정 저장하기';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function cancelEdit() {
+  resetForm();
+  showToast('수정을 취소했습니다.');
+}
+
 function deleteItem(id) {
   if (!confirm('이 항목을 삭제할까요?')) return;
   saveItems(loadItems().filter(i => i.id !== id));
+  if (editingId === id) resetForm();
   renderList(); showToast('삭제되었습니다.');
+}
+
+// 비밀번호 마지막 변경일로부터 경과일 (기존 데이터는 id값=생성시각 사용)
+function pwAgeDays(item) {
+  const t = item.pwChangedAt || item.id;
+  if (!t) return null;
+  return Math.floor((Date.now() - t) / DAY_MS);
 }
 
 // ── RENDER ──
@@ -958,6 +1097,8 @@ function renderList() {
     const safe    = safeUrl(url);
     const catKey  = item.cat || '기타';
     const catLabel = CAT_LABELS[catKey] || catKey;
+    const age      = pwAgeDays(item);
+    const needRotate = age !== null && age >= ROTATE_DAYS;
     return `
       <div class="item-card${item.alert ? ' alert-card' : ''}">
         <div class="item-head">
@@ -968,6 +1109,7 @@ function renderList() {
           </div>
         </div>
         ${item.alert ? `<div style="font-size:.82em;color:var(--danger);margin-bottom:8px">⚠️ 결제 정보·계좌가 연동된 중요 사이트입니다. 각별히 주의하세요.</div>` : ''}
+        ${needRotate ? `<div class="rotate-warn">🕐 비밀번호를 바꾼 지 ${age}일이 지났어요. 교체를 권장합니다.</div>` : ''}
         ${safe ? `<a class="visit-btn" href="${h(safe)}" target="_blank" rel="noopener">🔗 사이트 방문</a>` : ''}
         <div class="item-row">
           <span class="item-lbl">아이디</span>
@@ -982,6 +1124,7 @@ function renderList() {
         </div>
         ${item.memo ? `<div class="item-notes">📝 ${h(item.memo)}</div>` : ''}
         <div class="item-foot">
+          <button class="btn-edit" onclick="startEdit(${item.id})">수정</button>
           <button class="btn-danger" onclick="deleteItem(${item.id})">삭제</button>
         </div>
       </div>`;
@@ -1082,6 +1225,69 @@ function safeUrl(url) {
   if (!url) return '';
   try { const u=new URL(url); return (u.protocol==='https:'||u.protocol==='http:') ? url : ''; }
   catch { return ''; }
+}
+
+// ── 보안 점검 리포트 ──
+function openReport() {
+  const items = loadItems();
+  const body  = document.getElementById('reportBody');
+
+  if (!items.length) {
+    body.innerHTML = `<p class="empty-msg">저장된 항목이 없습니다.<br>먼저 비밀번호를 저장해 주세요.</p>`;
+    openModal('reportModal');
+    return;
+  }
+
+  const total = items.length;
+
+  // 약한 비밀번호 (강도 0~1)
+  const weak = items.filter(i => pwStrength(i.pw) <= 1).length;
+
+  // 중복 비밀번호 (2개 이상 같은 비번을 쓰는 항목 수)
+  const pwCount = {};
+  items.forEach(i => { pwCount[i.pw] = (pwCount[i.pw]||0) + 1; });
+  const dupItems = items.filter(i => pwCount[i.pw] > 1).length;
+
+  // 오래된 비밀번호 (6개월 이상)
+  const old = items.filter(i => { const a = pwAgeDays(i); return a !== null && a >= ROTATE_DAYS; }).length;
+
+  // 점수 계산: 100점에서 문제마다 감점
+  let score = 100;
+  score -= Math.round((weak     / total) * 40);   // 약한 비번 최대 -40
+  score -= Math.round((dupItems / total) * 35);   // 중복 비번 최대 -35
+  score -= Math.round((old      / total) * 25);   // 오래된 비번 최대 -25
+  score = Math.max(0, score);
+
+  const grade = score >= 80 ? {cls:'score-good', lbl:'양호합니다 👍'}
+              : score >= 50 ? {cls:'score-mid',  lbl:'주의가 필요해요 ⚠️'}
+              :               {cls:'score-bad',  lbl:'위험합니다! 점검하세요 🚨'};
+
+  const stat = (cond, icon, label, sub, count, unit) => {
+    const cls = count === 0 ? 'ok' : (cond ? 'bad' : 'warn');
+    return `
+      <div class="report-stat ${cls}">
+        <div class="report-stat-label">${icon} ${label}<small>${sub}</small></div>
+        <div class="report-stat-count">${count}${unit}</div>
+      </div>`;
+  };
+
+  body.innerHTML = `
+    <div class="report-score ${grade.cls}">
+      <div class="score-num">${score}점</div>
+      <div class="score-lbl">${grade.lbl}</div>
+    </div>
+    <div style="font-size:.9em;color:var(--text3);margin-bottom:12px">전체 ${total}개 항목을 점검했습니다.</div>
+    ${stat(weak>0,     '🔓', '약한 비밀번호',     '쉽게 추측될 수 있어요. 더 복잡하게 바꾸세요.', weak,     '개')}
+    ${stat(dupItems>0, '♻️', '중복된 비밀번호',   '여러 사이트에 같은 비번 사용 — 매우 위험해요.', dupItems, '개')}
+    ${stat(old>0,      '🕐', '오래된 비밀번호',   '6개월 이상 안 바꾼 항목입니다.',              old,      '개')}
+    ${ (weak||dupItems||old) ? `
+      <div style="margin-top:16px;padding:13px 15px;background:var(--primary-bg);border-radius:10px;font-size:.88em;color:var(--primary);line-height:1.6">
+        💡 위 항목들을 <b>"수정"</b> 버튼으로 새 비밀번호로 바꾸면 점수가 올라갑니다.<br>
+        자동생성 버튼을 쓰면 강한 비밀번호를 쉽게 만들 수 있어요.
+      </div>` : `
+      <div class="breach-safe" style="margin-top:8px">✅ 모든 비밀번호가 안전하게 관리되고 있습니다!</div>` }
+  `;
+  openModal('reportModal');
 }
 
 // ── URL 자동완성 DB ──
