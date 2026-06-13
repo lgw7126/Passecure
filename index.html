@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>비밀번호 메모장</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', '맑은 고딕', sans-serif;
+      background: #f0f4f8;
+      color: #1a1a2e;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 2rem;
+      margin-bottom: 32px;
+      color: #1a1a2e;
+      letter-spacing: -0.5px;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    /* 입력 폼 */
+    .form-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      margin-bottom: 28px;
+    }
+
+    .form-card h2 {
+      font-size: 1.3rem;
+      margin-bottom: 20px;
+      color: #2d3a8c;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #333;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 1.15rem;
+      border: 2px solid #d0d7e3;
+      border-radius: 10px;
+      outline: none;
+      transition: border-color 0.2s;
+      background: #fafbff;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      border-color: #4a6cf7;
+      background: #fff;
+    }
+
+    .pw-wrapper {
+      position: relative;
+    }
+
+    .pw-wrapper input {
+      padding-right: 56px;
+    }
+
+    .toggle-pw {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1.3rem;
+      padding: 4px;
+      color: #666;
+    }
+
+    .btn-save {
+      width: 100%;
+      padding: 16px;
+      background: #4a6cf7;
+      color: #fff;
+      font-size: 1.2rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: background 0.2s;
+    }
+
+    .btn-save:hover {
+      background: #2d4fd6;
+    }
+
+    /* 검색 */
+    .search-area {
+      margin-bottom: 20px;
+    }
+
+    .search-area input {
+      width: 100%;
+      padding: 14px 16px;
+      font-size: 1.15rem;
+      border: 2px solid #d0d7e3;
+      border-radius: 10px;
+      outline: none;
+      background: #fff;
+      transition: border-color 0.2s;
+    }
+
+    .search-area input:focus {
+      border-color: #4a6cf7;
+    }
+
+    /* 목록 */
+    .list-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #2d3a8c;
+      margin-bottom: 12px;
+    }
+
+    .empty-msg {
+      text-align: center;
+      color: #999;
+      font-size: 1.1rem;
+      padding: 40px 0;
+    }
+
+    .item-card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px 20px 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+      margin-bottom: 14px;
+    }
+
+    .item-site {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 14px;
+      word-break: break-all;
+    }
+
+    .item-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .item-label {
+      font-size: 1rem;
+      color: #666;
+      min-width: 64px;
+      font-weight: 600;
+    }
+
+    .item-value {
+      font-size: 1.05rem;
+      color: #222;
+      flex: 1;
+      word-break: break-all;
+    }
+
+    .item-value.masked {
+      letter-spacing: 3px;
+      color: #555;
+    }
+
+    .btn-copy {
+      padding: 8px 16px;
+      background: #e8edff;
+      color: #2d4fd6;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .btn-copy:hover {
+      background: #c7d4ff;
+    }
+
+    .btn-copy.copied {
+      background: #d4edda;
+      color: #1a7a3a;
+    }
+
+    .item-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 12px;
+      border-top: 1px solid #f0f0f0;
+      padding-top: 12px;
+    }
+
+    .btn-delete {
+      padding: 8px 16px;
+      background: #fff0f0;
+      color: #c0392b;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn-delete:hover {
+      background: #ffd5d5;
+    }
+
+    /* 토스트 메시지 */
+    #toast {
+      position: fixed;
+      bottom: 32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #222;
+      color: #fff;
+      padding: 12px 28px;
+      border-radius: 30px;
+      font-size: 1.05rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 9999;
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 1.6rem; }
+      .item-row { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <h1>🔐 비밀번호 메모장</h1>
+
+  <!-- 입력 폼 -->
+  <div class="form-card">
+    <h2>새 항목 저장</h2>
+    <div class="form-group">
+      <label for="site">사이트 이름</label>
+      <input type="text" id="site" placeholder="예: 네이버, 카카오, 구글" />
+    </div>
+    <div class="form-group">
+      <label for="userId">아이디</label>
+      <input type="text" id="userId" placeholder="아이디 또는 이메일" autocomplete="off" />
+    </div>
+    <div class="form-group">
+      <label for="pw">비밀번호</label>
+      <div class="pw-wrapper">
+        <input type="password" id="pw" placeholder="비밀번호 입력" autocomplete="off" />
+        <button class="toggle-pw" onclick="togglePw()" title="비밀번호 보기/숨기기">👁</button>
+      </div>
+    </div>
+    <button class="btn-save" onclick="saveItem()">저장하기</button>
+  </div>
+
+  <!-- 검색 -->
+  <div class="search-area">
+    <input type="text" id="search" placeholder="🔍 사이트 이름으로 검색..." oninput="renderList()" />
+  </div>
+
+  <!-- 목록 -->
+  <div class="list-title" id="listTitle"></div>
+  <div id="list"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const STORAGE_KEY = 'passecure_items';
+
+  function loadItems() {
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveItems(items) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }
+
+  function saveItem() {
+    const site = document.getElementById('site').value.trim();
+    const userId = document.getElementById('userId').value.trim();
+    const pw = document.getElementById('pw').value;
+
+    if (!site) { showToast('사이트 이름을 입력해 주세요.'); return; }
+    if (!userId) { showToast('아이디를 입력해 주세요.'); return; }
+    if (!pw) { showToast('비밀번호를 입력해 주세요.'); return; }
+
+    const items = loadItems();
+    items.unshift({ id: Date.now(), site, userId, pw });
+    saveItems(items);
+
+    document.getElementById('site').value = '';
+    document.getElementById('userId').value = '';
+    document.getElementById('pw').value = '';
+
+    showToast('저장되었습니다!');
+    renderList();
+  }
+
+  function deleteItem(id) {
+    if (!confirm('이 항목을 삭제할까요?')) return;
+    const items = loadItems().filter(item => item.id !== id);
+    saveItems(items);
+    renderList();
+    showToast('삭제되었습니다.');
+  }
+
+  function copyText(text, btnEl) {
+    navigator.clipboard.writeText(text).then(() => {
+      btnEl.textContent = '복사됨 ✓';
+      btnEl.classList.add('copied');
+      setTimeout(() => {
+        btnEl.textContent = '복사';
+        btnEl.classList.remove('copied');
+      }, 1800);
+    }).catch(() => {
+      // 구형 브라우저 대비 fallback
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      btnEl.textContent = '복사됨 ✓';
+      btnEl.classList.add('copied');
+      setTimeout(() => {
+        btnEl.textContent = '복사';
+        btnEl.classList.remove('copied');
+      }, 1800);
+    });
+  }
+
+  function togglePw() {
+    const input = document.getElementById('pw');
+    input.type = input.type === 'password' ? 'text' : 'password';
+  }
+
+  function renderList() {
+    const query = document.getElementById('search').value.trim().toLowerCase();
+    const items = loadItems();
+    const filtered = query
+      ? items.filter(item => item.site.toLowerCase().includes(query))
+      : items;
+
+    const listEl = document.getElementById('list');
+    const titleEl = document.getElementById('listTitle');
+
+    titleEl.textContent = `저장된 항목 (${filtered.length}개)`;
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<p class="empty-msg">' +
+        (query ? '검색 결과가 없습니다.' : '저장된 항목이 없습니다.') +
+        '</p>';
+      return;
+    }
+
+    listEl.innerHTML = filtered.map(item => `
+      <div class="item-card">
+        <div class="item-site">🌐 ${escHtml(item.site)}</div>
+        <div class="item-row">
+          <span class="item-label">아이디</span>
+          <span class="item-value">${escHtml(item.userId)}</span>
+          <button class="btn-copy" onclick="copyText('${escAttr(item.userId)}', this)">복사</button>
+        </div>
+        <div class="item-row">
+          <span class="item-label">비밀번호</span>
+          <span class="item-value masked">••••••••</span>
+          <button class="btn-copy" onclick="copyText('${escAttr(item.pw)}', this)">복사</button>
+        </div>
+        <div class="item-actions">
+          <button class="btn-delete" onclick="deleteItem(${item.id})">삭제</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function escAttr(str) {
+    return str.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2200);
+  }
+
+  // 엔터키로 저장
+  ['site','userId','pw'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => {
+      if (e.key === 'Enter') saveItem();
+    });
+  });
+
+  // 초기 렌더
+  renderList();
+</script>
+
+</body>
+</html>
