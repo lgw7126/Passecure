@@ -400,6 +400,14 @@
       border-radius: 8px; font-size: .82em; font-weight: 700;
       border-left: 3px solid #f59e0b;
     }
+    .pw-date {
+      margin-top: 4px; padding: 6px 11px;
+      font-size: .8em; color: var(--text3);
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    }
+    .pw-date .dday { font-weight: 700; }
+    .pw-date .dday.ok   { color: var(--success); }
+    .pw-date .dday.soon { color: var(--warn-color); }
 
     /* 편집 모드 카드 강조 */
     .card.editing { border: 2px solid var(--primary); }
@@ -1119,6 +1127,13 @@ function pwAgeDays(item) {
   if (!t) return null;
   return Math.floor((Date.now() - t) / DAY_MS);
 }
+// 타임스탬프 → "2026년 6월 13일" 형식
+function fmtDate(ts) {
+  if (!ts) return '';
+  const d = new Date(ts);
+  if (isNaN(d)) return '';
+  return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
+}
 
 // ── RENDER ──
 function renderList() {
@@ -1149,6 +1164,14 @@ function renderList() {
     const catLabel = CAT_LABELS[catKey] || catKey;
     const age      = pwAgeDays(item);
     const needRotate = age !== null && age >= ROTATE_DAYS;
+    const changedStr = fmtDate(item.pwChangedAt || item.id);
+    const daysLeft = age === null ? null : (ROTATE_DAYS - age);
+    let ddayHtml = '';
+    if (age !== null) {
+      if (needRotate)       ddayHtml = `<span class="dday soon">교체 권장</span>`;
+      else if (daysLeft <= 30) ddayHtml = `<span class="dday soon">${daysLeft}일 뒤 교체 권장</span>`;
+      else                  ddayHtml = `<span class="dday ok">${daysLeft}일 남음</span>`;
+    }
     return `
       <div class="item-card${item.alert ? ' alert-card' : ''}">
         <div class="item-head">
@@ -1172,6 +1195,7 @@ function renderList() {
           ${isDup ? `<span class="dup-icon" title="다른 사이트와 같은 비밀번호!">⚠️</span>` : ''}
           <button class="btn-copy" onclick="copyField(${item.id},'pw',this)">복사</button>
         </div>
+        ${changedStr ? `<div class="pw-date">🔑 마지막 변경: ${changedStr} ${ddayHtml}</div>` : ''}
         ${item.memo ? `<div class="item-notes">📝 ${h(item.memo)}</div>` : ''}
         <div class="item-foot">
           <button class="btn-edit" onclick="startEdit(${item.id})">수정</button>
