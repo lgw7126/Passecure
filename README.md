@@ -2,7 +2,7 @@
 
 ## ▶ 클릭하면 바로 실행됩니다
 
-**[👉 비밀번호 메모장 열기](https://raw.githack.com/lgw7126/Passecure/main/index.html)**
+**[👉 비밀번호 메모장 열기](https://lgw7126.github.io/Passecure/)**
 
 > 위 링크를 클릭하면 설치 없이 브라우저에서 바로 사용할 수 있습니다.
 
