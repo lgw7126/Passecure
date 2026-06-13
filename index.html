@@ -592,8 +592,8 @@
       이 앱은 <b>나만 보는 비밀번호 메모장</b>이에요.<br>
       <b>PIN 번호</b>를 설정하면 다른 사람이<br>열 수 없어요.
     </p>
-    <button class="btn-primary" style="margin-bottom:12px;padding:16px;font-size:1.05em" id="welcomePinBtn">🔒 PIN 번호 설정하기</button>
-    <button class="btn-cancel" style="display:block;padding:14px;font-size:1em" id="welcomeSkipBtn">나중에 설정하기</button>
+    <button class="btn-primary" style="margin-bottom:12px;padding:16px;font-size:1.05em" id="welcomePinBtn" onclick="welcomeSetPin()">🔒 PIN 번호 설정하기</button>
+    <button class="btn-cancel" style="display:block;padding:14px;font-size:1em" id="welcomeSkipBtn" onclick="welcomeSkip()">나중에 설정하기</button>
   </div>
 </div>
 
@@ -702,11 +702,11 @@
     <div class="app-header">
       <h1>🔐 비밀번호 메모장</h1>
       <div class="hdr-btns">
-        <button class="hdr-btn" id="fontSmBtn"  title="글씨 작게">A−</button>
-        <button class="hdr-btn" id="fontLgBtn"  title="글씨 크게">A＋</button>
-        <button class="hdr-btn" id="darkBtn"    title="다크/라이트">🌙</button>
-        <button class="hdr-btn" id="reportBtn"  title="보안 점검">🛡️</button>
-        <button class="hdr-btn" id="settingBtn" title="설정">⚙️</button>
+        <button class="hdr-btn" id="fontSmBtn"  onclick="fontStep(-1)"           title="글씨 작게">A−</button>
+        <button class="hdr-btn" id="fontLgBtn"  onclick="fontStep(1)"            title="글씨 크게">A＋</button>
+        <button class="hdr-btn" id="darkBtn"    onclick="toggleDarkBtn()"        title="다크/라이트">🌙</button>
+        <button class="hdr-btn" id="reportBtn"  onclick="openReport()"           title="보안 점검">🛡️</button>
+        <button class="hdr-btn" id="settingBtn" onclick="openModal('settingModal')" title="설정">⚙️</button>
       </div>
     </div>
 
@@ -776,7 +776,7 @@
           <label for="siteUrl">사이트 주소 (선택)</label>
           <div class="url-wrap">
             <input type="text" id="siteUrl" placeholder="사이트 이름 또는 주소 입력 (예: naver, 구글)"
-                   autocomplete="off" onblur="hideUrlDrop()" />
+                   autocomplete="off" />
             <div id="urlDropdown" class="url-dropdown hidden"></div>
           </div>
         </div>
@@ -877,17 +877,6 @@ const saveItems = d  => localStorage.setItem(K_ITEMS, JSON.stringify(d));
   refreshPinStatus();
   renderList();
 
-  // ── 헤더 버튼 이벤트 (onclick 대신 addEventListener 사용) ──
-  document.getElementById('settingBtn').addEventListener('click', function() { openModal('settingModal'); });
-  document.getElementById('reportBtn').addEventListener('click', function() { openReport(); });
-  document.getElementById('darkBtn').addEventListener('click', function() { toggleDarkBtn(); });
-  document.getElementById('fontSmBtn').addEventListener('click', function() { fontStep(-1); });
-  document.getElementById('fontLgBtn').addEventListener('click', function() { fontStep(1); });
-
-  // 환영 화면 버튼
-  document.getElementById('welcomePinBtn').addEventListener('click', function() { welcomeSetPin(); });
-  document.getElementById('welcomeSkipBtn').addEventListener('click', function() { welcomeSkip(); });
-
   // 배너 버튼
   document.getElementById('bannerPinBtn').addEventListener('click', function() {
     document.getElementById('setupBanner').classList.add('hidden');
@@ -912,12 +901,20 @@ const saveItems = d  => localStorage.setItem(K_ITEMS, JSON.stringify(d));
   ['input', 'compositionupdate', 'compositionend', 'focus', 'click'].forEach(ev =>
     urlEl.addEventListener(ev, () => urlSuggest(urlEl))
   );
+
+  // URL 드롭다운: 외부 클릭 시 닫기 (blur 대신 document click 사용 → 모바일 호환)
+  document.addEventListener('click', function(e) {
+    const wrap = document.querySelector('.url-wrap');
+    if (wrap && !wrap.contains(e.target)) {
+      document.getElementById('urlDropdown').classList.add('hidden');
+    }
+  });
 })();
 
 // ── MODAL HELPERS ──
-const openModal  = id => document.getElementById(id).classList.remove('hidden');
-const closeModal = id => document.getElementById(id).classList.add('hidden');
-function bgClose(id) { closeModal(id); }
+function openModal(id)  { document.getElementById(id).classList.remove('hidden'); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+function bgClose(id)    { closeModal(id); }
 
 // ── DARK MODE ──
 function applyDark(on) {
@@ -1526,7 +1523,7 @@ function urlSuggest(el) {
   ).slice(0, 8);
   if (!matches.length) { drop.classList.add('hidden'); return; }
   drop.innerHTML = matches.map(s =>
-    `<div class="url-sug" onmousedown="pickUrl('${s.u.replace(/'/g,"\\'")}')">
+    `<div class="url-sug" onclick="pickUrl('${s.u.replace(/'/g,"\\'")}')">
       <span class="url-sug-name">${h(s.n)}</span>
       <span class="url-sug-addr">${h(s.u)}</span>
     </div>`
