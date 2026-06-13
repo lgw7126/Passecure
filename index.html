@@ -552,6 +552,11 @@
       <button class="pin-key invis" disabled></button>
     </div>
     <p class="pin-err hidden" id="pinErr">PIN이 틀렸습니다. 다시 입력해 주세요.</p>
+    <div id="pinForgot" style="margin-top:20px">
+      <button onclick="forgotPin()" style="background:none;border:none;color:var(--text3);font-size:.88em;cursor:pointer;text-decoration:underline;padding:4px">
+        PIN을 잊으셨나요?
+      </button>
+    </div>
   </div>
 </div>
 
@@ -873,6 +878,15 @@ function verifyPin() {
     document.getElementById('pinErr').classList.remove('hidden');
   }
   _pin = ''; dots('pinDots', 0);
+}
+
+function forgotPin() {
+  if (confirm('PIN을 초기화하면 잠금이 해제됩니다.\n저장된 비밀번호 데이터는 그대로 유지됩니다.\n\nPIN을 초기화할까요?')) {
+    localStorage.removeItem(K_PIN);
+    document.getElementById('pinOverlay').classList.add('hidden');
+    refreshPinStatus();
+    showToast('PIN이 초기화됐습니다. 설정에서 새 PIN을 설정하세요.');
+  }
 }
 
 // ── PIN SETUP ──
