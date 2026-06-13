@@ -386,6 +386,27 @@
       border-top: 1px solid var(--border);
     }
 
+    /* ── URL 자동완성 ── */
+    .url-wrap { position: relative; }
+    .url-dropdown {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+      background: var(--surface);
+      border: 2px solid var(--primary); border-top: none;
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+      box-shadow: var(--shadow);
+      max-height: 240px; overflow-y: auto;
+    }
+    .url-sug {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 14px; cursor: pointer; gap: 10px;
+      border-bottom: 1px solid var(--border);
+      transition: background .1s;
+    }
+    .url-sug:last-child { border-bottom: none; }
+    .url-sug:hover { background: var(--primary-bg); }
+    .url-sug-name { font-size: .95em; font-weight: 700; color: var(--text); white-space: nowrap; }
+    .url-sug-addr { font-size: .82em; color: var(--text3); text-align: right; word-break: break-all; }
+
     /* ── BREACH TAB ── */
     .breach-notice {
       background: var(--warn-bg); border-left: 4px solid #f59e0b;
@@ -629,7 +650,11 @@
 
         <div class="form-group">
           <label for="siteUrl">사이트 주소 (선택)</label>
-          <input type="url" id="siteUrl" placeholder="https://사이트주소.com" />
+          <div class="url-wrap">
+            <input type="text" id="siteUrl" placeholder="사이트 이름 또는 주소 입력 (예: naver, 구글)"
+                   autocomplete="off" oninput="urlSuggest(this)" onblur="hideUrlDrop()" />
+            <div id="urlDropdown" class="url-dropdown hidden"></div>
+          </div>
         </div>
 
         <div class="form-group">
@@ -1058,6 +1083,131 @@ function safeUrl(url) {
   try { const u=new URL(url); return (u.protocol==='https:'||u.protocol==='http:') ? url : ''; }
   catch { return ''; }
 }
+
+// ── URL 자동완성 DB ──
+const SITE_DB = [
+  // 포털/검색
+  {n:'네이버',        u:'https://www.naver.com'},
+  {n:'다음',          u:'https://www.daum.net'},
+  {n:'구글',          u:'https://www.google.com'},
+  {n:'구글 지메일',   u:'https://mail.google.com'},
+  {n:'네이버 메일',   u:'https://mail.naver.com'},
+  {n:'카카오메일',    u:'https://mail.kakao.com'},
+  // 소셜
+  {n:'카카오',        u:'https://www.kakao.com'},
+  {n:'카카오톡',      u:'https://accounts.kakao.com'},
+  {n:'인스타그램',    u:'https://www.instagram.com'},
+  {n:'페이스북',      u:'https://www.facebook.com'},
+  {n:'트위터 X',      u:'https://www.x.com'},
+  {n:'틱톡',          u:'https://www.tiktok.com'},
+  {n:'네이버 밴드',   u:'https://band.us'},
+  {n:'카카오스토리',  u:'https://story.kakao.com'},
+  {n:'유튜브',        u:'https://www.youtube.com'},
+  // 쇼핑
+  {n:'쿠팡',          u:'https://www.coupang.com'},
+  {n:'지마켓',        u:'https://www.gmarket.co.kr'},
+  {n:'11번가',        u:'https://www.11st.co.kr'},
+  {n:'옥션',          u:'https://www.auction.co.kr'},
+  {n:'SSG닷컴',       u:'https://www.ssg.com'},
+  {n:'롯데온',        u:'https://www.lotteon.com'},
+  {n:'위메프',        u:'https://www.wemakeprice.com'},
+  {n:'티몬',          u:'https://www.tmon.co.kr'},
+  {n:'현대홈쇼핑',    u:'https://www.hyundaihmall.com'},
+  {n:'네이버쇼핑',    u:'https://shopping.naver.com'},
+  {n:'쿠팡이츠',      u:'https://www.coupangeats.com'},
+  {n:'배달의민족',    u:'https://www.baemin.com'},
+  {n:'요기요',        u:'https://www.yogiyo.co.kr'},
+  // 금융/은행
+  {n:'KB국민은행',    u:'https://www.kbstar.com'},
+  {n:'신한은행',      u:'https://www.shinhan.com'},
+  {n:'우리은행',      u:'https://www.wooribank.com'},
+  {n:'하나은행',      u:'https://www.hanabank.com'},
+  {n:'IBK기업은행',   u:'https://www.ibk.co.kr'},
+  {n:'NH농협은행',    u:'https://www.nonghyup.com'},
+  {n:'카카오뱅크',    u:'https://www.kakaobank.com'},
+  {n:'토스뱅크',      u:'https://www.tossbank.com'},
+  {n:'케이뱅크',      u:'https://www.kbanknow.com'},
+  {n:'삼성증권',      u:'https://www.samsungpop.com'},
+  {n:'미래에셋증권',  u:'https://securities.miraeasset.com'},
+  {n:'키움증권',      u:'https://www.kiwoom.com'},
+  // 결제/카드
+  {n:'토스',          u:'https://toss.im'},
+  {n:'카카오페이',    u:'https://www.kakaopay.com'},
+  {n:'네이버페이',    u:'https://pay.naver.com'},
+  {n:'페이코',        u:'https://www.payco.com'},
+  {n:'KB국민카드',    u:'https://www.kbcard.com'},
+  {n:'신한카드',      u:'https://www.shinhancard.com'},
+  {n:'삼성카드',      u:'https://www.samsungcard.com'},
+  {n:'현대카드',      u:'https://www.hyundaicard.com'},
+  {n:'롯데카드',      u:'https://www.lottecard.co.kr'},
+  {n:'BC카드',        u:'https://www.bccard.com'},
+  // 엔터테인먼트
+  {n:'넷플릭스',      u:'https://www.netflix.com'},
+  {n:'왓챠',          u:'https://watcha.com'},
+  {n:'웨이브',        u:'https://www.wavve.com'},
+  {n:'티빙',          u:'https://www.tving.com'},
+  {n:'멜론',          u:'https://www.melon.com'},
+  {n:'지니뮤직',      u:'https://www.genie.co.kr'},
+  {n:'벅스',          u:'https://music.bugs.co.kr'},
+  {n:'스포티파이',    u:'https://www.spotify.com'},
+  {n:'디즈니플러스',  u:'https://www.disneyplus.com'},
+  {n:'애플TV',        u:'https://tv.apple.com'},
+  // 게임
+  {n:'스팀',          u:'https://store.steampowered.com'},
+  {n:'넥슨',          u:'https://www.nexon.com'},
+  {n:'엔씨소프트',    u:'https://www.ncsoft.com'},
+  {n:'넷마블',        u:'https://www.netmarble.net'},
+  {n:'카카오게임즈',  u:'https://www.kakaogames.com'},
+  {n:'플레이스테이션',u:'https://www.playstation.com'},
+  {n:'엑스박스',      u:'https://www.xbox.com'},
+  {n:'닌텐도',        u:'https://www.nintendo.co.kr'},
+  // 공공/정부
+  {n:'정부24',        u:'https://www.gov.kr'},
+  {n:'국민건강보험',  u:'https://www.nhis.or.kr'},
+  {n:'국민연금',      u:'https://www.nps.or.kr'},
+  {n:'고용보험',      u:'https://www.ei.go.kr'},
+  {n:'홈택스',        u:'https://www.hometax.go.kr'},
+  {n:'복지로',        u:'https://www.bokjiro.go.kr'},
+  {n:'교육행정정보',  u:'https://www.neis.go.kr'},
+  {n:'도로교통공단',  u:'https://www.koroad.or.kr'},
+  // 기타
+  {n:'애플',          u:'https://www.apple.com'},
+  {n:'마이크로소프트',u:'https://account.microsoft.com'},
+  {n:'아마존',        u:'https://www.amazon.com'},
+  {n:'에어비앤비',    u:'https://www.airbnb.co.kr'},
+  {n:'야놀자',        u:'https://www.yanolja.com'},
+  {n:'여기어때',      u:'https://www.goodchoice.kr'},
+  {n:'네이버웹툰',    u:'https://webtoon.naver.com'},
+  {n:'카카오웹툰',    u:'https://webtoon.kakao.com'},
+  {n:'레진코믹스',    u:'https://www.lezhin.com'},
+];
+
+function urlSuggest(el) {
+  const q = el.value.trim().toLowerCase();
+  const drop = document.getElementById('urlDropdown');
+  if (!q) { drop.classList.add('hidden'); return; }
+  const matches = SITE_DB.filter(s =>
+    s.n.includes(q) || s.u.toLowerCase().includes(q)
+  ).slice(0, 8);
+  if (!matches.length) { drop.classList.add('hidden'); return; }
+  drop.innerHTML = matches.map(s =>
+    `<div class="url-sug" onmousedown="pickUrl('${s.u.replace(/'/g,"\\'")}')">
+      <span class="url-sug-name">${h(s.n)}</span>
+      <span class="url-sug-addr">${h(s.u)}</span>
+    </div>`
+  ).join('');
+  drop.classList.remove('hidden');
+}
+
+function pickUrl(url) {
+  document.getElementById('siteUrl').value = url;
+  document.getElementById('urlDropdown').classList.add('hidden');
+}
+
+function hideUrlDrop() {
+  setTimeout(() => document.getElementById('urlDropdown').classList.add('hidden'), 160);
+}
+
 function showToast(msg) {
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
